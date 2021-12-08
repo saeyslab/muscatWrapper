@@ -1,0 +1,480 @@
+#' @title get_muscat_exprs_frac
+#'
+#' @description \code{get_muscat_exprs_frac} Calculate sample- and group-average of fraction of cells in a cell type expressing a gene.
+#' @usage get_muscat_exprs_frac(sce, sample_id, celltype_id, group_id)
+#'
+#' @inheritParams muscat_analysis
+#'
+#' @return List with two dataframes: one with fraction of cells in a cell type expressing a gene, averaged per sample; and one averaged per group.
+#'
+#' @import dplyr
+#' @import muscat
+#' @import tibble
+#' @import tidyr
+#' @importFrom purrr map
+#' @importFrom magrittr set_names
+#'
+#' @examples
+#' \dontrun{
+#' library(dplyr)
+#' sample_id = "tumor"
+#' group_id = "pEMT"
+#' celltype_id = "celltype"
+#' muscat_exprs_frac = get_muscat_exprs_frac(sce = sce, sample_id = sample_id, celltype_id =  celltype_id, group_id = group_id)
+#' }
+#'
+#' @export
+#'
+get_muscat_exprs_frac = function(sce, sample_id, celltype_id, group_id){
+
+  requireNamespace("dplyr")
+
+  # prepare SCE for the muscat pseudobulk analysis
+  sce$id = sce[[sample_id]]
+  sce = muscat::prepSCE(sce,
+                        kid = celltype_id, # subpopulation assignments
+                        gid = group_id,  # group IDs (ctrl/stim)
+                        sid = "id",   # sample IDs (ctrl/stim.1234)
+                        drop = FALSE)  #
+
+  samples = sce$sample_id %>% unique() %>% as.character()
+  groups = sce$group_id  %>% unique() %>% as.character()
+
+  frq = muscat::calcExprFreqs(sce, assay = "counts", th = 0) # gives NaN sometimes...
+  if(is.null(rownames(frq))){
+    all_genes = rownames(sce) # eg in case the first cell type in frq is absent in one sample -- then the rownames of frq will be NULL
+  } else {
+    all_genes = rownames(frq)
+  }
+  celltypes = sce$cluster_id %>% unique() %>% as.character()
+
+  frq_lists = celltypes %>% lapply(function(celltype_oi, frq, all_genes){
+    frq_celltype = frq@assays@data[[celltype_oi]]
+
+    celltype_genes = rownames(frq_celltype)
+    if(sum(celltype_genes == all_genes) != length(all_genes) ){
+      warning(paste0("For Celltype ",celltype_oi, " gene names got lost while calculating the fraction of expression of each gene with muscat::calcExprFreqs (due to a bug in this function). We temporality fixed this ourselves for the moment."))
+      rownames(frq_celltype) = all_genes
+    }
+
+    frq_celltype_samples = frq_celltype[,samples]
+    frq_celltype_samples = frq_celltype_samples %>% data.frame() %>% tibble::rownames_to_column("gene") %>% tidyr::gather(sample, fraction_sample, -gene) %>% tibble::as_tibble() %>% dplyr::mutate(celltype = celltype_oi)
+
+    frq_celltype_groups = frq_celltype[,groups]
+    frq_celltype_groups = frq_celltype_groups %>% data.frame() %>% tibble::rownames_to_column("gene") %>% tidyr::gather(group, fraction_group, -gene) %>% tibble::as_tibble() %>% dplyr::mutate(celltype = celltype_oi)
+
+    return(list(frq_celltype_samples = frq_celltype_samples, frq_celltype_groups = frq_celltype_groups))
+  },frq, all_genes) %>% magrittr::set_names(sce$cluster_id %>% unique())
+
+
+  frq_celltype_samples = frq_lists %>% purrr::map("frq_celltype_samples") %>% dplyr::bind_rows()
+  frq_celltype_groups = frq_lists %>% purrr::map("frq_celltype_groups") %>% dplyr::bind_rows()
+  rm(frq_lists)
+
+  return(list(frq_celltype_samples = frq_celltype_samples, frq_celltype_groups = frq_celltype_groups))
+}
+
+#' @title get_muscat_exprs_avg
+#'
+#' @description \code{get_muscat_exprs_avg}  Calculate sample- and group-average of gene expression per cell type.
+#' @usage get_muscat_exprs_avg(sce, sample_id, celltype_id, group_id)
+#'
+#' @inheritParams muscat_analysis
+#'
+#' @return Data frame with average gene expression per sample and per group.
+#'
+#' @import dplyr
+#' @import muscat
+#' @import tibble
+#' @import tidyr
+#' @importFrom scater logNormCounts computeLibraryFactors
+#'
+#' @examples
+#' \dontrun{
+#' library(dplyr)
+#' sample_id = "tumor"
+#' group_id = "pEMT"
+#' celltype_id = "celltype"
+#' muscat_exprs_avg = get_muscat_exprs_avg(sce = sce, sample_id = sample_id, celltype_id =  celltype_id, group_id = group_id)
+#' }
+#'
+#' @export
+#'
+get_muscat_exprs_avg = function(sce, sample_id, celltype_id, group_id){
+
+  requireNamespace("dplyr")
+
+  # prepare SCE for the muscat pseudobulk analysis
+  sce$id = sce[[sample_id]]
+  sce = muscat::prepSCE(sce,
+                        kid = celltype_id, # subpopulation assignments
+                        gid = group_id,  # group IDs (ctrl/stim)
+                        sid = "id",   # sample IDs (ctrl/stim.1234)
+                        drop = FALSE)  #
+  if(! "logcounts" %in% SummarizedExperiment::assayNames(sce)){
+    sce = scater::computeLibraryFactors(sce)
+    sce = scater::logNormCounts(sce)
+    # if wanting to use scran: --- uncomment this --> add this to the description file again (via add_data.R + add this to this import file)
+    # set.seed(1919) # seed for reproducibility of the scran::quickCluster function (see https://bioconductor.org/books/release/OSCA/normalization.html)
+    #
+    # clusters = suppressWarnings(scran::quickCluster(sce)) # why suppressWarnings --> on the lite dataset input ":regularize.values(x, y, ties, missing(ties), na.rm = na.rm)" pops always up, not on the entire dataset. Avoid these types of warnings for checks + anyway: logcounts assay are not much used anyway in the prioritizaton and visualization.
+    # sce = suppressWarnings(scran::computeSumFactors(sce, clusters=clusters))
+    # sce = suppressWarnings(scater::logNormCounts(sce))
+  }
+
+  avg = muscat::aggregateData(sce, assay = "logcounts", fun = "mean", by = c("cluster_id", "sample_id"))
+
+  avg_df = sce$cluster_id %>% unique() %>% lapply(function(celltype_oi, avg){
+    avg_celltype = avg@assays@data[[celltype_oi]]
+
+    avg_celltype_samples = avg_celltype[,sce$sample_id %>% unique()]
+    avg_celltype_samples = avg_celltype_samples %>% data.frame() %>% tibble::rownames_to_column("gene") %>% tidyr::gather(sample, average_sample, -gene) %>% tibble::as_tibble() %>% dplyr::mutate(celltype = celltype_oi)
+
+  },avg) %>% dplyr::bind_rows()
+
+  return(avg_df)
+}
+#' @title get_pseudobulk_logCPM_exprs
+#'
+#' @description \code{get_pseudobulk_logCPM_exprs}  Calculate the 'library-size' normalized pseudbulk counts per sample for each gene - returned values are similar to logCPM.
+#' @usage get_pseudobulk_logCPM_exprs(sce, sample_id, celltype_id, group_id, covariates = NA, assay_oi_pb = "counts", fun_oi_pb = "sum")
+#'
+#' @inheritParams muscat_analysis
+#'
+#' @return Data frame with logCPM-like values of the library-size corrected pseudobulked counts (`pb_sample`) per gene per sample. pb_sample = log2( ((pb_raw/effective_library_size) \* 1000000) + 1). effective_library_size  = lib.size \* norm.factors (through edgeR::calcNormFactors).
+#'
+#' @import dplyr
+#' @import muscat
+#' @import tibble
+#' @import tidyr
+#' @importFrom edgeR DGEList calcNormFactors
+#' @importFrom sva ComBat_seq
+#' @importFrom S4Vectors metadata
+#' @importFrom SummarizedExperiment colData
+#'
+#' @examples
+#' \dontrun{
+#' library(dplyr)
+#' sample_id = "tumor"
+#' group_id = "pEMT"
+#' celltype_id = "celltype"
+#' pseudobulk_logCPM_exprs = get_pseudobulk_logCPM_exprs(sce = sce, sample_id = sample_id, celltype_id =  celltype_id, group_id = group_id)
+#' }
+#'
+#' @export
+#'
+get_pseudobulk_logCPM_exprs = function(sce, sample_id, celltype_id, group_id, covariates = NA, assay_oi_pb = "counts", fun_oi_pb = "sum"){
+
+  requireNamespace("dplyr")
+
+  # prepare SCE for the muscat pseudobulk analysis
+  sce$id = sce[[sample_id]]
+  sce = muscat::prepSCE(sce,
+                        kid = celltype_id, # subpopulation assignments
+                        gid = group_id,  # group IDs (ctrl/stim)
+                        sid = "id",   # sample IDs (ctrl/stim.1234)
+                        drop = FALSE)  #
+
+  pb = muscat::aggregateData(sce, assay = assay_oi_pb, fun = fun_oi_pb, by = c("cluster_id", "sample_id"))
+
+  # Prepare the design (group and batch effects) for the combat correction
+  if(length(covariates) > 1){
+    covariates_present = TRUE
+    covariates = covariates[1] ## only keep the first batch for batch correction!
+    warning("You used more than 1 covariate/batch to correct for. This is OK for the DE analysis. But, for the Combat batch correction of pseudobulked counts (used in visualization), only the first covariate will be considered as batch. If you want to use both as batch, redo the analysis after merging both in one variable.")
+  } else {
+    if(!is.na(covariates)){
+      covariates_present = TRUE
+    } else {
+      covariates_present = FALSE
+    }
+  }
+  if(covariates_present){ ## then perform the correction!
+    extra_metadata = SummarizedExperiment::colData(sce) %>% tibble::as_tibble() %>% dplyr::select(all_of(sample_id), all_of(covariates)) %>% dplyr::distinct() %>% dplyr::mutate_all(factor)
+    colnames(extra_metadata) = c("sample_id","covariates")
+    ei = S4Vectors::metadata(sce)$experiment_info
+    ei = ei %>%  dplyr::inner_join(extra_metadata, by = "sample_id")
+
+    # do a check: will we able to correct for the covariates on a group-by-group basis?
+    n_combinations_observed = ei %>% dplyr::select(group_id, covariates) %>% dplyr::distinct() %>% nrow()
+    n_combinations_possible = length(levels(ei$group_id)) * length(levels(ei$covariates))
+    if(n_combinations_observed != n_combinations_possible){
+      warning("Not all possible group-batch/covariate combinations are present in your data. This will result in errors during the batch effect correction process of Combat and/or Muscat DE analysis. Please reconsider the groups and batches you defined.")
+    }
+
+    # do another necessary check: each batch-group combinations should have at least one or preferably two observations
+    # print(ei %>% dplyr::select(sample_id, group_id, covariates) %>% dplyr::distinct() %>% dplyr::group_by(group_id, covariates) %>% dplyr::count() %>% arrange(n))
+    # print(ei %>% dplyr::select(sample_id, covariates) %>% dplyr::distinct() %>% dplyr::group_by(covariates) %>% dplyr::count() %>% arrange(n))
+    batch = as.factor(ei$covariates)
+    if (any(table(batch) <= 1)) {
+      warning("For some covariate values, only one sample is present in your data. Combat correction of the expression for downstream visualization cannot handle this.")
+      pb_df = sce$cluster_id %>% unique() %>% lapply(function(celltype_oi, pb){ # no correction of the pseudobulk counts
+
+        pseudobulk_counts_celltype = edgeR::DGEList(pb@assays@data[[celltype_oi]])
+
+        non_zero_samples = pseudobulk_counts_celltype %>% apply(2,sum) %>% .[. > 0] %>% names()
+        pseudobulk_counts_celltype = pseudobulk_counts_celltype[,non_zero_samples]
+
+        pseudobulk_counts_celltype = edgeR::calcNormFactors(pseudobulk_counts_celltype)
+
+        pseudobulk_counts_celltype_df = dplyr::inner_join(
+          pseudobulk_counts_celltype$sample %>% data.frame() %>% tibble::rownames_to_column("sample") %>% dplyr::mutate(effective_library_size  = lib.size * norm.factors),
+          pseudobulk_counts_celltype$counts %>% data.frame() %>% tibble::rownames_to_column("gene") %>% tidyr::gather(sample, pb_raw, -gene)
+        )
+
+        pseudobulk_counts_celltype_df = pseudobulk_counts_celltype_df %>% dplyr::mutate(pb_norm = pb_raw / effective_library_size) %>% dplyr::mutate(pb_sample = log2( (pb_norm * 1000000) + 1)) %>% tibble::as_tibble() %>% dplyr::mutate(celltype = celltype_oi) # +1: pseudocount - should be introduced after library size correction, otherwise: we think some samples have a higher expression even though it was zero!
+
+      },pb) %>% dplyr::bind_rows() %>% dplyr::select(gene, sample, pb_sample, celltype) %>% dplyr::distinct()
+
+    } else {
+      pb_df = sce$cluster_id %>% unique() %>% lapply(function(celltype_oi, pb, ei){
+        # get the count matrix
+        count_matrix = pb@assays@data[[celltype_oi]] %>% .[,ei$sample_id]
+        non_zero_samples = count_matrix %>% apply(2,sum) %>% .[. > 0] %>% names()
+        count_matrix = count_matrix[,non_zero_samples]
+        # adjust the count matrix
+        ei = ei %>% dplyr::filter(sample_id %in% non_zero_samples)
+        batch = as.factor(ei$covariates) # still check whether we have enough samples for each celltype to correct for!!
+        if (any(table(batch) <= 1)) {
+          warning(paste0("For some covariate values for celltype ",celltype_oi, " only one sample is present in your data. Combat correction of the expression for downstream visualization cannot handle this. Therefore we continue with non-corrected pseudobulk expression values here."))
+          adj_count_matrix = count_matrix
+        } else {
+          quiet <- function(x) { # to suppress sva-combat output
+            sink(tempfile())
+            on.exit(sink())
+            invisible(force(x))
+          }
+          adj_count_matrix = quiet(sva::ComBat_seq(count_matrix, batch=ei$covariates, group=ei$group_id, full_mod=TRUE)) # to suppress its output
+        }
+        # normalize the adjusted count matrix, just like we do for the non-adjusted one
+        pseudobulk_counts_celltype = edgeR::DGEList(adj_count_matrix)
+        pseudobulk_counts_celltype = edgeR::calcNormFactors(pseudobulk_counts_celltype)
+
+        pseudobulk_counts_celltype_df = dplyr::inner_join(
+          pseudobulk_counts_celltype$sample %>% data.frame() %>% tibble::rownames_to_column("sample") %>% dplyr::mutate(effective_library_size  = lib.size * norm.factors),
+          pseudobulk_counts_celltype$counts %>% data.frame() %>% tibble::rownames_to_column("gene") %>% tidyr::gather(sample, pb_raw, -gene)
+        )
+
+        pseudobulk_counts_celltype_df = pseudobulk_counts_celltype_df %>% dplyr::mutate(pb_norm = pb_raw / effective_library_size) %>% dplyr::mutate(pb_sample = log2( (pb_norm * 1000000) + 1)) %>% tibble::as_tibble() %>% dplyr::mutate(celltype = celltype_oi) # +1: pseudocount - should be introduced after library size correction, otherwise: we think some samples have a higher expression even though it was zero!
+
+      },pb, ei) %>% dplyr::bind_rows() %>% dplyr::select(gene, sample, pb_sample, celltype) %>% dplyr::distinct()
+    }
+
+  } else { # no correction of the pseudobulk counts
+    pb_df = sce$cluster_id %>% unique() %>% lapply(function(celltype_oi, pb){
+
+      pseudobulk_counts_celltype = edgeR::DGEList(pb@assays@data[[celltype_oi]])
+
+      non_zero_samples = pseudobulk_counts_celltype %>% apply(2,sum) %>% .[. > 0] %>% names()
+      pseudobulk_counts_celltype = pseudobulk_counts_celltype[,non_zero_samples]
+
+      pseudobulk_counts_celltype = edgeR::calcNormFactors(pseudobulk_counts_celltype)
+
+      pseudobulk_counts_celltype_df = dplyr::inner_join(
+        pseudobulk_counts_celltype$sample %>% data.frame() %>% tibble::rownames_to_column("sample") %>% dplyr::mutate(effective_library_size  = lib.size * norm.factors),
+        pseudobulk_counts_celltype$counts %>% data.frame() %>% tibble::rownames_to_column("gene") %>% tidyr::gather(sample, pb_raw, -gene)
+      )
+
+      pseudobulk_counts_celltype_df = pseudobulk_counts_celltype_df %>% dplyr::mutate(pb_norm = pb_raw / effective_library_size) %>% dplyr::mutate(pb_sample = log2( (pb_norm * 1000000) + 1)) %>% tibble::as_tibble() %>% dplyr::mutate(celltype = celltype_oi) # +1: pseudocount - should be introduced after library size correction, otherwise: we think some samples have a higher expression even though it was zero!
+
+    },pb) %>% dplyr::bind_rows() %>% dplyr::select(gene, sample, pb_sample, celltype) %>% dplyr::distinct()
+  }
+
+
+  return(pb_df)
+}
+
+
+
+#' @title fix_frq_df
+#'
+#' @description \code{fix_frq_df}  Fix muscat-bug in fraction calculation in case that expression fraction would be NA / NaN. Change NA to 0.
+#' @usage fix_frq_df(sce, frq_celltype_samples)
+#'
+#' @inheritParams muscat_analysis
+#' @param frq_celltype_samples Sample-average data frame output of `get_muscat_exprs_frac`
+#'
+#' @return Fixed data frame with fraction of cells expressing a gene.
+#'
+#' @import dplyr
+#' @importFrom magrittr set_names
+#'
+#' @examples
+#' \dontrun{
+#' library(dplyr)
+#' sample_id = "tumor"
+#' group_id = "pEMT"
+#' celltype_id = "celltype"
+#' frq_df = get_muscat_exprs_frac(sce, sample_id = sample_id, celltype_id =  celltype_id, group_id = group_id) %>% .$frq_celltype_samples
+#' if(nrow(frq_df %>% dplyr::filter(is.na(fraction_sample))) > 0 | nrow(frq_df %>% dplyr::filter(is.nan(fraction_sample))) > 0) {
+#'   frq_df = fix_frq_df(sce, frq_df)
+#'   }
+#' }
+#'
+#' @export
+#'
+fix_frq_df = function(sce, frq_celltype_samples){
+
+  requireNamespace("dplyr")
+
+  genes = rownames(sce)
+  gene_mapping = genes %>% magrittr::set_names(seq(length(genes)))
+
+  frq_celltype_samples_OK = frq_celltype_samples %>% dplyr::filter(gene %in% genes)
+
+  frq_celltype_samples_FIX = frq_celltype_samples %>% dplyr::filter(!gene %in% genes)
+
+  frq_celltype_samples_FIX = frq_celltype_samples_FIX %>% dplyr::mutate(gene = gene_mapping[gene])
+
+  frq_celltype_samples_FIX = frq_celltype_samples_FIX %>% dplyr::mutate(fraction_sample = 0)
+
+  frq_celltype_samples = frq_celltype_samples_OK %>% dplyr::bind_rows(frq_celltype_samples_FIX)
+
+  return(frq_celltype_samples)
+
+}
+
+#' @title get_avg_frac_exprs_abund
+#'
+#' @description \code{get_avg_frac_exprs_abund}  Calculate the average and fraction of expression of each gene per sample and per group. Calculate relative abundances of cell types as well.
+#' @usage get_avg_frac_exprs_abund(sce, sample_id, celltype_id, group_id, covariates = NA)
+#'
+#' @inheritParams muscat_analysis
+#'
+#' @return List containing data frames with average and fraction of expression per sample and per group (and pseudobulked), and relative cell type abundances as well.
+#'
+#' @import dplyr
+#' @import tibble
+#' @importFrom tidyr gather
+#' @importFrom SummarizedExperiment colData
+#'
+#' @examples
+#' \dontrun{
+#' library(dplyr)
+#' sample_id = "tumor"
+#' group_id = "pEMT"
+#' celltype_id = "celltype"
+#' celltype_info = get_avg_frac_exprs_abund(sce = sce, sample_id = sample_id, celltype_id =  celltype_id, group_id = group_id)
+#' }
+#'
+#' @export
+#'
+get_avg_frac_exprs_abund = function(sce, sample_id, celltype_id, group_id, covariates = NA){
+
+  requireNamespace("dplyr")
+
+  # input checks
+
+  if (class(sce) != "SingleCellExperiment") {
+    stop("sce should be a SingleCellExperiment object")
+  }
+  if (!celltype_id %in% colnames(SummarizedExperiment::colData(sce))) {
+    stop("celltype_id should be a column name in the metadata dataframe of sce")
+  }
+  if (celltype_id != make.names(celltype_id)) {
+    stop("celltype_id should be a syntactically valid R name - check make.names")
+  }
+  if (!sample_id %in% colnames(SummarizedExperiment::colData(sce))) {
+    stop("sample_id should be a column name in the metadata dataframe of sce")
+  }
+  if (sample_id != make.names(sample_id)) {
+    stop("sample_id should be a syntactically valid R name - check make.names")
+  }
+  if (!group_id %in% colnames(SummarizedExperiment::colData(sce))) {
+    stop("group_id should be a column name in the metadata dataframe of sce")
+  }
+  if (group_id != make.names(group_id)) {
+    stop("group_id should be a syntactically valid R name - check make.names")
+  }
+
+  if(is.double(SummarizedExperiment::colData(sce)[,celltype_id])){
+    stop("SummarizedExperiment::colData(sce)[,celltype_id] should be a character vector or a factor")
+  }
+  if(is.double(SummarizedExperiment::colData(sce)[,group_id])){
+    stop("SummarizedExperiment::colData(sce)[,group_id] should be a character vector or a factor")
+  }
+  if(is.double(SummarizedExperiment::colData(sce)[,sample_id])){
+    stop("SummarizedExperiment::colData(sce)[,sample_id] should be a character vector or a factor")
+  }
+
+  # if some of these are factors, and not all levels have syntactically valid names - prompt to change this
+  if(is.factor(SummarizedExperiment::colData(sce)[,celltype_id])){
+    is_make_names = levels(SummarizedExperiment::colData(sce)[,celltype_id]) == make.names(levels(SummarizedExperiment::colData(sce)[,celltype_id]))
+    if(sum(is_make_names) != length(levels(SummarizedExperiment::colData(sce)[,celltype_id]))){
+      stop("The levels of the factor SummarizedExperiment::colData(sce)[,celltype_id] should be a syntactically valid R names - see make.names")
+    }
+  }
+  if(is.factor(SummarizedExperiment::colData(sce)[,group_id])){
+    is_make_names = levels(SummarizedExperiment::colData(sce)[,group_id]) == make.names(levels(SummarizedExperiment::colData(sce)[,group_id]))
+    if(sum(is_make_names) != length(levels(SummarizedExperiment::colData(sce)[,group_id]))){
+      stop("The levels of the factor SummarizedExperiment::colData(sce)[,group_id] should be a syntactically valid R names - see make.names")
+    }
+  }
+  if(is.factor(SummarizedExperiment::colData(sce)[,sample_id])){
+    is_make_names = levels(SummarizedExperiment::colData(sce)[,sample_id]) == make.names(levels(SummarizedExperiment::colData(sce)[,sample_id]))
+    if(sum(is_make_names) != length(levels(SummarizedExperiment::colData(sce)[,sample_id]))){
+      stop("The levels of the factor SummarizedExperiment::colData(sce)[,sample_id] should be a syntactically valid R names - see make.names")
+    }
+  }
+
+  if(!is.na(covariates)){
+    if (sum(covariates %in% colnames(SummarizedExperiment::colData(sce))) != length(covariates) ) {
+      stop("covariates should be NA or all present as column name(s) in the metadata dataframe of sce_receiver")
+    }
+  }
+  ## calculate averages, fractions, relative abundance of a cell type in a group
+
+  # calculate average expression
+  avg_df = get_muscat_exprs_avg(sce, sample_id = sample_id, celltype_id =  celltype_id, group_id = group_id)
+
+  # calculate fraction of expression
+  frq_df = get_muscat_exprs_frac(sce, sample_id = sample_id, celltype_id = celltype_id, group_id = group_id) %>% .$frq_celltype_samples
+
+  # calculate pseudobulked counts
+  pb_df = get_pseudobulk_logCPM_exprs(sce, sample_id = sample_id, celltype_id = celltype_id, group_id = group_id, covariates = covariates, assay_oi_pb = "counts", fun_oi_pb = "sum") # should be these parameters
+
+  # check whether something needs to be fixed
+  if(nrow(avg_df %>% dplyr::filter(is.na(average_sample))) > 0 | nrow(avg_df %>% dplyr::filter(is.nan(average_sample))) > 0) {
+    warning("There are some genes with NA average expression.")
+  }
+  if(nrow(frq_df %>% dplyr::filter(is.na(fraction_sample))) > 0 | nrow(frq_df %>% dplyr::filter(is.nan(fraction_sample))) > 0) {
+    warning("There are some genes with NA fraction of expression. This is the result of the muscat function `calcExprFreqs` which will give NA when there are no cells of a particular cell type in a particular group. As a temporary fix, we give all these genes an expression fraction of 0 in that group for that cell type")
+    frq_df = fix_frq_df(sce, frq_df)
+  }
+
+  # prepare grouping to get group averages
+  metadata = SummarizedExperiment::colData(sce) %>% tibble::as_tibble()
+  if('sample_id' != sample_id){
+    metadata$sample_id = metadata[[sample_id]]
+  }
+  if('group_id' != sample_id){
+    metadata$group_id = metadata[[group_id]]
+  }
+  if('celltype_id' != celltype_id){
+    metadata$celltype_id = metadata[[celltype_id]]
+  }
+
+  grouping_df = metadata %>% dplyr::select(sample_id, group_id) %>% tibble::as_tibble() %>% dplyr::distinct() %>% dplyr::rename(sample = sample_id, group = group_id)
+
+  avg_df_group = avg_df %>% dplyr::inner_join(grouping_df) %>% dplyr::group_by(group, celltype, gene) %>% dplyr::summarise(average_group = mean(average_sample))
+  frq_df_group = frq_df %>% dplyr::inner_join(grouping_df) %>% dplyr::group_by(group, celltype, gene) %>% dplyr::summarise(fraction_group = mean(fraction_sample))
+  pb_df_group = pb_df %>% dplyr::inner_join(grouping_df) %>% dplyr::group_by(group, celltype, gene) %>% dplyr::summarise(pb_group = mean(pb_sample))
+
+  # calculate relative abundance
+  n_celltypes = metadata$celltype_id %>% unique() %>% length()
+  if(n_celltypes > 1){
+    rel_abundance_celltype_vs_celltype = table(metadata$celltype_id, metadata$group_id) %>% apply(2, function(x){x/sum(x)})
+    rel_abundance_celltype_vs_group = rel_abundance_celltype_vs_celltype %>% apply(1, function(x){x/sum(x)})
+  } else {
+    rel_abundance_celltype_vs_group = table(metadata$celltype_id, metadata$group_id) %>% apply(1, function(x){x/sum(x)})
+  }
+
+  # rel_ab_mean = rel_abundance_celltype_vs_group %>% apply(2, mean, na.rm = TRUE)
+  # rel_ab_sd = rel_abundance_celltype_vs_group %>% apply(2, sd, na.rm = TRUE)
+  # rel_ab_z = (rel_abundance_celltype_vs_group - rel_ab_mean) / rel_ab_sd
+  # rel_abundance_df = rel_ab_z %>% data.frame() %>% tibble::rownames_to_column("group") %>% tidyr::gather(celltype, rel_abundance_scaled, -group) %>% tibble::as_tibble()
+  rel_abundance_df = rel_abundance_celltype_vs_group %>% data.frame() %>% tibble::rownames_to_column("group") %>% tidyr::gather(celltype, rel_abundance_scaled, -group) %>% tibble::as_tibble() %>% dplyr::mutate(rel_abundance_scaled = scale_quantile_adapted(rel_abundance_scaled))
+  return(list(avg_df = avg_df, frq_df = frq_df, pb_df = pb_df, avg_df_group = avg_df_group, frq_df_group = frq_df_group, pb_df_group = pb_df_group, rel_abundance_df = rel_abundance_df))
+
+}
+
