@@ -1,13 +1,12 @@
-#' @title multi_nichenet_analysis_separate
+#' @title muscat_analysis
 #'
-#' @description \code{multi_nichenet_analysis_separate}  Perform a MultiNicheNet analysis between sender cell types and receiver cell types of interest.
-#' @usage multi_nichenet_analysis_separate(
-#' sce_receiver, sce_sender,celltype_id_receiver,celltype_id_sender,sample_id,group_id, covariates, lr_network,ligand_target_matrix,contrasts_oi,contrast_tbl, fraction_cutoff = 0.05,
-#' prioritizing_weights = c("de_ligand" = 1,"de_receptor" = 1,"activity_scaled" = 1,"exprs_ligand" = 1,"exprs_receptor" = 1, "frac_exprs_ligand_receptor" = 1,"abund_sender" = 0,"abund_receiver" = 0),
-#' assay_oi_pb ="counts",fun_oi_pb = "sum",de_method_oi = "edgeR",min_cells = 10,logFC_threshold = 0.25,p_val_threshold = 0.05, p_val_adj = FALSE, empirical_pval = TRUE, top_n_target = 250, verbose = FALSE, n.cores = 1, return_lr_prod_matrix = FALSE, findMarkers = FALSE)
+#' @description \code{muscat_analysis}  Perform a multi-sample multi-condition DE analysis with the pseudobulk approach implemented in muscat.
+#' @usage muscat_analysis(
+#' sce, celltype_id, sample_id, group_id, covariates, contrasts_oi, contrast_tbl, assay_oi_pb ="counts", fun_oi_pb = "sum", de_method_oi = "edgeR", min_cells = 10, verbose = FALSE
+#' )
 #'
-#' @param sample_id Name of the meta data column that indicates from which sample/patient a cell comes from (in both sce_receiver and sce_sender)
-#' @param group_id Name of the meta data column that indicates from which group/condition a cell comes from (in both sce_receiver and sce_sender)
+#' @param sample_id Name of the meta data column that indicates from which sample/patient a cell comes from (in sce)
+#' @param group_id Name of the meta data column that indicates from which group/condition a cell comes from (in sce)
 #' @param covariates NA if no covariates should be corrected for. If there should be corrected for covariates, this argument should be the name(s) of the columns in the meta data that indicate the covariate(s).
 #' @param contrasts_oi String indicating the contrasts of interest (= which groups/conditions will be compared) for the differential expression and MultiNicheNet analysis.
 #' We will demonstrate here a few examples to indicate how to write this. Check the limma package manuals for more information about defining design matrices and contrasts for differential expression analysis.
@@ -21,7 +20,7 @@
 #' @param contrast_tbl Data frame providing names for each of the contrasts in contrasts_oi in the 'contrast' column, and the corresponding group of interest in the 'group' column. Entries in the 'group' column should thus be present in the group_id column in the metadata.
 #' Example for `contrasts_oi = c("'A-(B+C+D)/3', 'B-(A+C+D)/3'")`:
 #' `contrast_tbl = tibble(contrast = c("A-(B+C+D)/3","B-(A+C+D)/3"), group = c("A","B"))`
-#' @param sce SingleCellExperiment object of the scRNAseq data of interest. Contains both sender and receiver cell types.
+#' @param sce SingleCellExperiment object of the scRNAseq data of interest.
 #' @param celltype_id Name of the column in the meta data of sce that indicates the cell type of a cell.
 #' @param assay_oi_pb Indicates which information of the assay of interest should be used (counts, scaled data,...). Default: "counts". See `muscat::aggregateData`.
 #' @param fun_oi_pb Indicates way of doing the pseudobulking. Default: "sum". See `muscat::aggregateData`.
@@ -29,7 +28,7 @@
 #' @param min_cells Indicates the minimal number of cells that a sample should have to be considered in the DE analysis. Default: 10. See `muscat::pbDS`.
 #' @param verbose Indicate which different steps of the pipeline are running or not. Default: FALSE.
 #'
-#' @return List containing information and output of the MultiNicheNet analysis.
+#' @return List containing information and output of the Muscat analysis.
 #' celltype_info: contains average expression value and fraction of each cell type - sample combination,
 #' celltype_de: contains output of the differential expression analysis,
 #' grouping_tbl: data frame showing the group per sample
@@ -181,7 +180,7 @@ muscat_analysis = function(sce, celltype_id,
 
   if(!is.na(covariates)){
     if (sum(covariates %in% colnames(SummarizedExperiment::colData(sce))) != length(covariates) ) {
-      stop("covariates should be NA or all present as column name(s) in the metadata dataframe of sce_receiver")
+      stop("covariates should be NA or all present as column name(s) in the metadata dataframe of sce")
     }
   }
 
@@ -210,16 +209,12 @@ muscat_analysis = function(sce, celltype_id,
     stop("verbose should be TRUE or FALSE")
   }
 
-  ### Define Senders-Receivers
-  senders_oi = SummarizedExperiment::colData(sce)[,celltype_id] %>% unique()
-  receivers_oi = SummarizedExperiment::colData(sce)[,celltype_id] %>% unique()
-
-  ### Receiver abundance plots + Calculate expression information
+  ### celltype abundance plots + Calculate expression information
   if(verbose == TRUE){
     print("Make diagnostic abundance plots + Calculate expression information")
   }
 
-  abundance_expression_info = get_abundance_expression_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id = celltype_id, min_cells = min_cells, senders_oi = senders_oi, receivers_oi = receivers_oi, lr_network = lr_network, covariates = covariates)
+  expression_info = get_expression_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id = celltype_id, covariates = covariates)
 
   ### Perform the DE analysis ----------------------------------------------------------------
 
@@ -227,17 +222,12 @@ muscat_analysis = function(sce, celltype_id,
     print("Calculate differential expression for all cell types")
   }
 
-
   DE_info = get_DE_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id = celltype_id, covariates = covariates, contrasts_oi = contrasts_oi, min_cells = min_cells,
                           assay_oi_pb = assay_oi_pb,
                           fun_oi_pb = fun_oi_pb,
-                          de_method_oi = de_method_oi,
-                          findMarkers = FALSE)
-
+                          de_method_oi = de_method_oi)
 
   ### Remove types of information that we don't need anymore:
-
-  sender_receiver_tbl = sender_receiver_de %>% dplyr::distinct(sender, receiver)
 
   metadata_combined = SummarizedExperiment::colData(sce) %>% tibble::as_tibble()
 
@@ -250,10 +240,8 @@ muscat_analysis = function(sce, celltype_id,
   }
 
   muscat_output = list(
-    celltype_info = abundance_expression_info$celltype_info,
-    abundance_data_receiver = abundance_expression_info$abundance_data_receiver, abundance_data_sender = abundance_expression_info$abundance_data_sender,
-    celltype_de = celltype_de,
-    grouping_tbl = grouping_tbl
+    celltype_info = expression_info,
+    celltype_de = list(hist_pvals = DE_info$hist_pvals, celltype_de = DE_info$celltype_de)
   )
 
   return(muscat_output)

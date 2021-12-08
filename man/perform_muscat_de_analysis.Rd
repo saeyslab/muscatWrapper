@@ -7,13 +7,13 @@
 perform_muscat_de_analysis(sce, sample_id, celltype_id, group_id, covariates, contrasts, assay_oi_pb = "counts", fun_oi_pb = "sum", de_method_oi = "edgeR", min_cells = 10)
 }
 \arguments{
-\item{sce}{SingleCellExperiment object of the scRNAseq data of interest. Contains both sender and receiver cell types.}
+\item{sce}{SingleCellExperiment object of the scRNAseq data of interest.}
 
-\item{sample_id}{Name of the meta data column that indicates from which sample/patient a cell comes from (in both sce_receiver and sce_sender)}
+\item{sample_id}{Name of the meta data column that indicates from which sample/patient a cell comes from (in sce)}
 
 \item{celltype_id}{Name of the column in the meta data of sce that indicates the cell type of a cell.}
 
-\item{group_id}{Name of the meta data column that indicates from which group/condition a cell comes from (in both sce_receiver and sce_sender)}
+\item{group_id}{Name of the meta data column that indicates from which group/condition a cell comes from (in sce)}
 
 \item{covariates}{NA if no covariates should be corrected for. If there should be corrected for covariates, this argument should be the name(s) of the columns in the meta data that indicate the covariate(s).}
 

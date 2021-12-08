@@ -7,7 +7,7 @@
 fix_frq_df(sce, frq_celltype_samples)
 }
 \arguments{
-\item{sce}{SingleCellExperiment object of the scRNAseq data of interest. Contains both sender and receiver cell types.}
+\item{sce}{SingleCellExperiment object of the scRNAseq data of interest.}
 
 \item{frq_celltype_samples}{Sample-average data frame output of `get_muscat_exprs_frac`}
 }

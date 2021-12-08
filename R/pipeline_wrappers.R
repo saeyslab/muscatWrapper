@@ -1,10 +1,10 @@
-#' @title get_abundance_expression_info
+#' @title get_abundance_info
 #'
-#' @description \code{get_abundance_expression_info} Visualize cell type abundances. Calculate the average and fraction of expression of each gene per sample and per group. Calculate relative abundances of cell types as well. Under the hood, the following functions are used: `get_avg_frac_exprs_abund`.
+#' @description \code{get_abundance_info} Visualize cell type abundances. Calculate relative abundances of cell types as well.
 #'
 #' @inheritParams muscat_analysis
 #'
-#' @return List containing cell type abundance plots, and data frames with average and fraction of expression per sample and per group, and relative cell type abundances as well.
+#' @return List containing cell type abundance plots and the underlying data frame that was used to make these plots.
 #'
 #' @import dplyr
 #' @import tibble
@@ -15,33 +15,45 @@
 #' @examples
 #' \dontrun{
 #' library(dplyr)
-#' lr_network = readRDS(url("https://zenodo.org/record/3260758/files/lr_network.rds"))
-#' lr_network = lr_network %>% dplyr::rename(ligand = from, receptor = to) %>% dplyr::distinct(ligand, receptor)
 #' sample_id = "tumor"
 #' group_id = "pEMT"
 #' celltype_id = "celltype"
-#' senders_oi = SummarizedExperiment::colData(sce)[,celltype_id] %>% unique()
-#' receivers_oi = SummarizedExperiment::colData(sce)[,celltype_id] %>% unique()
-#' abundance_celltype_info = get_abundance_expression_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id =  celltype_id, min_cells = 10, senders_oi = senders_oi, receivers_oi = receivers_oi, lr_network)
+#' abundance_info = get_abundance_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id =  celltype_id, min_cells = 10)
 #' }
 #'
 #' @export
 #'
-get_abundance_expression_info = function(sce, sample_id, group_id, celltype_id, min_cells, senders_oi, receivers_oi, lr_network, covariates = NA){
+get_abundance_info = function(sce, sample_id, group_id, celltype_id, min_cells = 10, covariates = NA){
 
   requireNamespace("dplyr")
   requireNamespace("ggplot2")
 
-  ### Receiver abundance plots
+  ### celltype abundance plots
 
   metadata_abundance = SummarizedExperiment::colData(sce)[,c(sample_id, group_id, celltype_id)] %>% tibble::as_tibble()
   colnames(metadata_abundance) =c("sample_id", "group_id", "celltype_id")
 
+  ## barplots
+  # celltype proportion per sample
+  abund_barplot = metadata_abundance %>% mutate(celltype_id = factor(celltype_id)) %>% ggplot() +
+    aes(x = sample_id, fill = celltype_id) +
+    geom_bar(position = "fill") +
+    facet_grid(. ~ group_id, scales = "free", space = "free_x") +
+    theme_light() +
+    theme(
+      axis.ticks = element_blank(),
+      axis.text.y = element_text(size = 9),
+      axis.text.x = element_text(size = 9,  angle = 90,hjust = 0),
+      strip.text.x.top = element_text(angle = 0),
+      panel.spacing.x = unit(1.5, "lines"),
+      strip.text.x = element_text(size = 11, color = "black", face = "bold"),
+      strip.text.y = element_text(size = 9, color = "black", face = "bold", angle = 0),
+      strip.background = element_rect(color="darkgrey", fill="whitesmoke", size=1.5, linetype="solid")
+    ) + ggtitle("Cell type proportions per sample") + ylab("proportion") + xlab("sample")
+
+  ## plot per sample and cell type
   abundance_data = metadata_abundance %>% tibble::as_tibble() %>% dplyr::group_by(sample_id , celltype_id) %>% dplyr::count() %>% dplyr::inner_join(metadata_abundance %>% tibble::as_tibble() %>% dplyr::distinct(sample_id , group_id ), by = "sample_id")
   abundance_data = abundance_data %>% dplyr::mutate(keep = n >= min_cells) %>% dplyr::mutate(keep = factor(keep, levels = c(TRUE,FALSE)))
-
-  abundance_data_receiver = abundance_data %>% process_abund_info("receiver")
-  abundance_data_sender = abundance_data %>% process_abund_info("sender")
 
   if(is.na(covariates)){
     abund_plot = abundance_data %>% ggplot(aes(sample_id, n, fill = keep)) + geom_bar(stat="identity") + scale_fill_manual(values = c("royalblue", "lightcoral")) + facet_grid(celltype_id ~ group_id, scales = "free", space = "free_x") +
@@ -53,12 +65,12 @@ get_abundance_expression_info = function(sce, sample_id, group_id, celltype_id, 
         axis.text.y = element_text(size = 9),
         axis.text.x = element_text(size = 9,  angle = 90,hjust = 0),
         strip.text.x.top = element_text(angle = 0),
-        panel.spacing.x = unit(0.5, "lines"),
+        panel.spacing.x = unit(1, "lines"),
         panel.spacing.y = unit(0.5, "lines"),
         strip.text.x = element_text(size = 11, color = "black", face = "bold"),
         strip.text.y = element_text(size = 9, color = "black", face = "bold", angle = 0),
         strip.background = element_rect(color="darkgrey", fill="whitesmoke", size=1.5, linetype="solid")
-      ) + geom_hline(yintercept = min_cells, color = "red", linetype  = "longdash")  + ggtitle("Cell type abundances per sample") + ylab("# cells per sample-celltype combination")
+      ) + geom_hline(yintercept = min_cells, color = "red", linetype  = "longdash")  + ggtitle("Cell type abundances per sample") + ylab("# cells per sample-celltype combination") + xlab("")
 
 
     abund_plot_boxplot = abundance_data %>% ggplot(aes(group_id, n, group = group_id, color = group_id)) +
@@ -109,6 +121,39 @@ get_abundance_expression_info = function(sce, sample_id, group_id, celltype_id, 
 
   }
 
+  return(list(abund_barplot = abund_barplot, abund_plot_sample = abund_plot, abund_plot_group = abund_plot_boxplot, abundance_data = abundance_data))
+
+}
+#' @title get_expression_info
+#'
+#' @description \code{get_expression_info} Calculate the average and fraction of expression of each gene per sample and per group. Under the hood, the following functions are used: `get_avg_frac_exprs_abund`.
+#'
+#' @inheritParams muscat_analysis
+#'
+#' @return List containing data frames with average and fraction of expression per sample and per group.
+#'
+#' @import dplyr
+#' @import tibble
+#' @import ggplot2
+#' @importFrom tidyr gather
+#' @importFrom SummarizedExperiment colData
+#'
+#' @examples
+#' \dontrun{
+#' library(dplyr)
+#' sample_id = "tumor"
+#' group_id = "pEMT"
+#' celltype_id = "celltype"
+#' celltype_info = get_expression_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id =  celltype_id)
+#' }
+#'
+#' @export
+#'
+get_expression_info = function(sce, sample_id, group_id, celltype_id, covariates = NA){
+
+  requireNamespace("dplyr")
+  requireNamespace("ggplot2")
+
   ### Cell type Info
 
   celltype_info = suppressMessages(get_avg_frac_exprs_abund(
@@ -118,17 +163,16 @@ get_abundance_expression_info = function(sce, sample_id, group_id, celltype_id, 
     group_id = group_id,
     covariates = covariates))
 
-  return(list(abund_plot_sample = abund_plot, abund_plot_group = abund_plot_boxplot, abundance_data_receiver = abundance_data_receiver, abundance_data_sender = abundance_data_sender, celltype_info = celltype_info))
+  return(celltype_info)
 
 }
 #' @title get_DE_info
 #'
 #' @description \code{get_DE_info} Perform differential expression analysis via Muscat - Pseudobulking approach. Also visualize the p-value distribution. Under the hood, the following function is used: `perform_muscat_de_analysis`.
-#' @usage get_DE_info(sce, sample_id, group_id, celltype_id, covariates, contrasts_oi, min_cells = 10, assay_oi_pb = "counts", fun_oi_pb = "sum", de_method_oi = "edgeR", findMarkers = FALSE, contrast_tbl = NULL)
+#' @usage get_DE_info(sce, sample_id, group_id, celltype_id, covariates, contrasts_oi, min_cells = 10, assay_oi_pb = "counts", fun_oi_pb = "sum", de_method_oi = "edgeR")
 #'
 #' @inheritParams muscat_analysis
 #' @inheritParams perform_muscat_de_analysis
-#' @param contrast_tbl see explanation in multi_nichenet_analysis function -- here: only required to give as input if findMarkers = TRUE.
 #'
 #' @return List with output of the differential expression analysis in 1) default format(`muscat::pbDS()`), and 2) in a tidy table format (`muscat::resDS()`) (both in the `celltype_de` slot); Histogram plot of the p-values is also returned.
 #'
@@ -157,7 +201,7 @@ get_abundance_expression_info = function(sce, sample_id, group_id, celltype_id, 
 #' @export
 #'
 #'
-get_DE_info = function(sce, sample_id, group_id, celltype_id, covariates, contrasts_oi, min_cells = 10, assay_oi_pb = "counts", fun_oi_pb = "sum", de_method_oi = "edgeR", findMarkers = FALSE, contrast_tbl = NULL){
+get_DE_info = function(sce, sample_id, group_id, celltype_id, covariates, contrasts_oi, min_cells = 10, assay_oi_pb = "counts", fun_oi_pb = "sum", de_method_oi = "edgeR"){
 
   requireNamespace("dplyr")
   requireNamespace("ggplot2")
@@ -179,7 +223,8 @@ get_DE_info = function(sce, sample_id, group_id, celltype_id, covariates, contra
     ggplot(aes(x = p_val, fill = `p-value <= 0.05`)) +
     geom_histogram(binwidth = 0.05,boundary=0, color = "grey35") + scale_fill_manual(values = c("grey90", "lightsteelblue1")) +
     facet_grid(contrast~cluster_id) + ggtitle("P-value histograms") + theme_bw()
-
+  findMarkers = FALSE
+  contrast_tbl = NULL
   if(findMarkers == TRUE){
 
     genes_filtered = celltype_de$de_output_tidy %>% dplyr::pull(gene) %>% unique()
@@ -233,8 +278,6 @@ get_DE_info = function(sce, sample_id, group_id, celltype_id, covariates, contra
 #' celltype_id = "celltype"
 #' covariates = NA
 #' contrasts_oi = c("'High-Low','Low-High'")
-#' senders_oi = SummarizedExperiment::colData(sce)[,celltype_id] %>% unique()
-#' receivers_oi = SummarizedExperiment::colData(sce)[,celltype_id] %>% unique()
 #' DE_info = get_DE_info(
 #'    sce = sce,
 #'    sample_id = sample_id,

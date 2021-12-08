@@ -33,7 +33,10 @@ Imports:
     RColorBrewer,
     ggpubr,
     edgeR,
-    sva
+    sva,
+    ggbeeswarm,
+    locfdr,
+    scran
 Suggests: 
     testthat,
     knitr,

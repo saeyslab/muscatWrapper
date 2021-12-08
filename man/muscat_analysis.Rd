@@ -2,21 +2,20 @@
 % Please edit documentation in R/pipeline.R
 \name{muscat_analysis}
 \alias{muscat_analysis}
-\title{multi_nichenet_analysis_separate}
+\title{muscat_analysis}
 \usage{
-multi_nichenet_analysis_separate(
-sce_receiver, sce_sender,celltype_id_receiver,celltype_id_sender,sample_id,group_id, covariates, lr_network,ligand_target_matrix,contrasts_oi,contrast_tbl, fraction_cutoff = 0.05,
-prioritizing_weights = c("de_ligand" = 1,"de_receptor" = 1,"activity_scaled" = 1,"exprs_ligand" = 1,"exprs_receptor" = 1, "frac_exprs_ligand_receptor" = 1,"abund_sender" = 0,"abund_receiver" = 0),
-assay_oi_pb ="counts",fun_oi_pb = "sum",de_method_oi = "edgeR",min_cells = 10,logFC_threshold = 0.25,p_val_threshold = 0.05, p_val_adj = FALSE, empirical_pval = TRUE, top_n_target = 250, verbose = FALSE, n.cores = 1, return_lr_prod_matrix = FALSE, findMarkers = FALSE)
+muscat_analysis(
+sce, celltype_id, sample_id, group_id, covariates, contrasts_oi, contrast_tbl, assay_oi_pb ="counts", fun_oi_pb = "sum", de_method_oi = "edgeR", min_cells = 10, verbose = FALSE
+)
 }
 \arguments{
-\item{sce}{SingleCellExperiment object of the scRNAseq data of interest. Contains both sender and receiver cell types.}
+\item{sce}{SingleCellExperiment object of the scRNAseq data of interest.}
 
 \item{celltype_id}{Name of the column in the meta data of sce that indicates the cell type of a cell.}
 
-\item{sample_id}{Name of the meta data column that indicates from which sample/patient a cell comes from (in both sce_receiver and sce_sender)}
+\item{sample_id}{Name of the meta data column that indicates from which sample/patient a cell comes from (in sce)}
 
-\item{group_id}{Name of the meta data column that indicates from which group/condition a cell comes from (in both sce_receiver and sce_sender)}
+\item{group_id}{Name of the meta data column that indicates from which group/condition a cell comes from (in sce)}
 
 \item{covariates}{NA if no covariates should be corrected for. If there should be corrected for covariates, this argument should be the name(s) of the columns in the meta data that indicate the covariate(s).}
 
@@ -45,13 +44,13 @@ Example for `contrasts_oi = c("'A-(B+C+D)/3', 'B-(A+C+D)/3'")`:
 \item{verbose}{Indicate which different steps of the pipeline are running or not. Default: FALSE.}
 }
 \value{
-List containing information and output of the MultiNicheNet analysis.
+List containing information and output of the Muscat analysis.
 celltype_info: contains average expression value and fraction of each cell type - sample combination,
 celltype_de: contains output of the differential expression analysis,
 grouping_tbl: data frame showing the group per sample
 }
 \description{
-\code{multi_nichenet_analysis_separate}  Perform a MultiNicheNet analysis between sender cell types and receiver cell types of interest.
+\code{muscat_analysis}  Perform a multi-sample multi-condition DE analysis with the pseudobulk approach implemented in muscat.
 }
 \examples{
 \dontrun{

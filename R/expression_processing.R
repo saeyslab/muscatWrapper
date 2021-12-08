@@ -419,7 +419,7 @@ get_avg_frac_exprs_abund = function(sce, sample_id, celltype_id, group_id, covar
 
   if(!is.na(covariates)){
     if (sum(covariates %in% colnames(SummarizedExperiment::colData(sce))) != length(covariates) ) {
-      stop("covariates should be NA or all present as column name(s) in the metadata dataframe of sce_receiver")
+      stop("covariates should be NA or all present as column name(s) in the metadata dataframe of sce")
     }
   }
   ## calculate averages, fractions, relative abundance of a cell type in a group
@@ -473,7 +473,7 @@ get_avg_frac_exprs_abund = function(sce, sample_id, celltype_id, group_id, covar
   # rel_ab_sd = rel_abundance_celltype_vs_group %>% apply(2, sd, na.rm = TRUE)
   # rel_ab_z = (rel_abundance_celltype_vs_group - rel_ab_mean) / rel_ab_sd
   # rel_abundance_df = rel_ab_z %>% data.frame() %>% tibble::rownames_to_column("group") %>% tidyr::gather(celltype, rel_abundance_scaled, -group) %>% tibble::as_tibble()
-  rel_abundance_df = rel_abundance_celltype_vs_group %>% data.frame() %>% tibble::rownames_to_column("group") %>% tidyr::gather(celltype, rel_abundance_scaled, -group) %>% tibble::as_tibble() %>% dplyr::mutate(rel_abundance_scaled = scale_quantile_adapted(rel_abundance_scaled))
+  rel_abundance_df = rel_abundance_celltype_vs_group %>% data.frame() %>% tibble::rownames_to_column("group") %>% tidyr::gather(celltype, rel_abundance_scaled, -group) %>% tibble::as_tibble()
   return(list(avg_df = avg_df, frq_df = frq_df, pb_df = pb_df, avg_df_group = avg_df_group, frq_df_group = frq_df_group, pb_df_group = pb_df_group, rel_abundance_df = rel_abundance_df))
 
 }
