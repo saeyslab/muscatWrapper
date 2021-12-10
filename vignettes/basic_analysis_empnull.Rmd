@@ -1,7 +1,7 @@
 ---
 title: "Muscat wrapper: HNSCC application"
 author: "Robin Browaeys"
-date: "2021-07-08"
+date: "2021-12-10"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Muscat wrapper: HNSCC application}
@@ -10,7 +10,7 @@ vignette: >
 ---
 
 <!-- github markdown built using 
-rmarkdown::render("vignettes/muscat_wrapper_vignette_final.Rmd", output_format = "github_document")
+rmarkdown::render("vignettes/basic_analysis_empnull.Rmd", output_format = "github_document")
 -->
 
 ```{r setup, include = FALSE}
@@ -24,7 +24,7 @@ knitr::opts_chunk$set(
 
 In this vignette, you can learn how to perform a muscat differential state (DS) analysis. A DS analysis can be performed if you have multi-sample, multi-group single-cell data. For each cell type of interest, muscat will compare the sample-wise expression of all genes between groups of interest. Therefore, the absolute minimum of meta data you need to have, are following columns indicating for each cell: the **group**, **sample** and **cell type**.
  
-As example expression data, we will use data from Puram et al. to explore intercellular communication in the tumor microenvironment in head and neck squamous cell carcinoma (HNSCC) [See @puram_single-cell_2017] [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4675430.svg)](https://doi.org/10.5281/zenodo.4675430).  The groups we have here are tumors scoring high for a partial epithelial-mesenschymal transition (p-EMT) program vs low-scoring tumors.
+As example expression data, we will use data from Puram et al. of the tumor microenvironment in head and neck squamous cell carcinoma (HNSCC) [See @puram_single-cell_2017] [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5196144.svg)](https://doi.org/10.5281/zenodo.5196144).  The groups we have here are tumors scoring high for a partial epithelial-mesenschymal transition (p-EMT) program vs low-scoring tumors.
 
 The different steps of the MultiNicheNet analysis are the following:
 
@@ -40,13 +40,13 @@ In this vignette, we will demonstrate all these steps in detail.
 
 # Step 0: Preparation of the analysis: load packages, read in the single-cell expression data, and define the main settings of the muscat analysis
 
-The current implementation of the muscat wrapper starts from a SingleCellExperiment object, therefore we will need to load the SingleCellExperiment library. If you start from a Seurat object, you can convert it easily to a SingleCellExperiment via `sce = Seurat::as.SingleCellExperiment(seurat_obj, assay = "RNA")`.
+IMPORTANT: The current implementation of the muscat wrapper starts from a SingleCellExperiment object, therefore we will need to load the SingleCellExperiment library. If you start from a Seurat object, you can convert it easily to a SingleCellExperiment via `sce = Seurat::as.SingleCellExperiment(seurat_obj, assay = "RNA")`.
 
 ```{r}
 library(SingleCellExperiment)
 library(dplyr)
 library(ggplot2)
-library(multinichenetr)
+library(muscatWrapper)
 ```
 
 In this case study, we want to study differences in expression between pEMT-high and pEMT-low tumors. The meta data columns that indicate the pEMT status of tumors are 'pEMT' and 'pEMT_fine', cell type is indicated in the 'celltype' column, and the sample is indicated by the 'tumor' column. 
@@ -96,31 +96,17 @@ __User adaptation possible__
 min_cells = 10
 ```
 
+We will now calculate the cell type abundance table and make the visualizations:
+
+```{r}
+abundance_output = get_abundance_info(sce, sample_id, group_id, celltype_id, min_cells, covariates = NA)
+head(abundance_output$abundance_data)
+```
+
 To visually see which celltype-sample combinations won't be considered, you can run the following code:
 
 ```{r, fig.height=8, fig.width=9}
-metadata_abundance = SummarizedExperiment::colData(sce) %>% tibble::as_tibble() %>% .[,c(sample_id, group_id, celltype_id)]
-colnames(metadata_abundance) =c("sample_id", "group_id", "celltype_id")
-  
-abundance_data = metadata_abundance %>% tibble::as_tibble() %>% dplyr::group_by(sample_id , celltype_id) %>% dplyr::count() %>% dplyr::inner_join(metadata_abundance %>% dplyr::distinct(sample_id , group_id ), by = "sample_id")
-abundance_data = abundance_data %>% dplyr::mutate(keep = n >= min_cells) %>% dplyr::mutate(keep = factor(keep, levels = c(TRUE,FALSE)))
-  
-abund_plot = abundance_data %>% ggplot(aes(sample_id, n, fill = keep)) + geom_bar(stat="identity") + scale_fill_manual(values = c("royalblue", "lightcoral")) + facet_grid(celltype_id ~ group_id, scales = "free", space = "free_x") +
-    scale_x_discrete(position = "top") +
-    theme_light() +
-    theme(
-      axis.ticks = element_blank(),
-      axis.title.x = element_text(size = 0),
-      axis.text.y = element_text(size = 9),
-      axis.text.x = element_text(size = 9,  angle = 90,hjust = 0),
-      strip.text.x.top = element_text(angle = 0),
-      panel.spacing.x = unit(0.5, "lines"),
-      panel.spacing.y = unit(0.5, "lines"),
-      strip.text.x = element_text(size = 11, color = "black", face = "bold"),
-      strip.text.y = element_text(size = 9, color = "black", face = "bold", angle = 0),
-      strip.background = element_rect(color="darkgrey", fill="whitesmoke", size=1.5, linetype="solid")
-    ) + geom_hline(yintercept = min_cells, color = "red", linetype  = "longdash")  + ggtitle("Cell type abundances per sample") + ylab("# cells per sample-celltype combination")
-abund_plot
+abundance_output$abund_plot_sample
 ```    
 Celltype-sample combinations that won't be considered are indicated in red (because they have less cells than the `min_cells` threshold indicated by the red dashed line)
 
@@ -129,19 +115,22 @@ If too many celltype-sample combinations don't pass this threshold, we recommend
 We can see here that quite many sample-celltype combinations are left out. For Endothelial, Myeloid, and T cells, we don't even have two or more samples that have enough cells of those cell types. When we don't have two or more samples per group left, we cannot do a group comparison (we need at least 2 replicates per group for a statistical analysis).
 Therefore, those cell types will be removed before the DE analysis. 
 
-As stated before when seeing this, we would recommend to use a higher-level cell type annotation if possible. But the annotation here is already high-level, and grouping Endothelial cells, T cells and Myeloid cells eg would not make sense biologically. That we won't be able to include these cell types in our analysis is a limitation of the MultiNicheNet approach compared to classic cell-level-based approaches (like Seurat::FindMarkers). On the contrary, those cell-level-based approaches don't reveal the lack of cells in many samples, and might lead to biased results.
+As stated before when seeing this, we would recommend to use a higher-level cell type annotation if possible. But the annotation here is already high-level, and grouping Endothelial cells, T cells and Myeloid cells eg would not make sense biologically. That we won't be able to include these cell types in our analysis is a limitation of the muscat approach compared to classic cell-level-based approaches (like Seurat::FindMarkers). On the contrary, those cell-level-based approaches don't reveal the lack of cells in many samples, and might lead to biased results.
 
 ## Step 1b: Differential cell type abundance between the groups of interest
 
 In another visualization, we can compare the cell type abundances between the groups of interest. This can be interesting because too strong abundance differences might have an effect on the DS analysis. Downstream results of these cell types should then be considered with some caution.
 
 ```{r, fig.height=7, fig.width=7}
-abund_plot_group = abundance_data %>% ggplot(aes(group_id, n, group = group_id, color = group_id)) + 
-    geom_boxplot(outlier.shape = NA) + geom_jitter(aes(alpha = keep), width = 0.15, height = 0.05) + scale_alpha_manual(values = c(1,0.30)) + facet_wrap( ~ celltype_id, scales = "free") + theme_bw() + 
-    scale_color_discrete("tomato","steelblue2") + geom_hline(yintercept = min_cells, color = "red", linetype  = "longdash") + ggtitle("Cell type abundances per group") + ylab("# cells per sample-celltype combination") + xlab("Group")
-abund_plot_group
+abundance_output$abund_plot_group
 ```        
 Differential abundance looks quite OK for the cell types kept for the DE analysis (i.e. CAF, Malignant and myofibroblast)
+
+We can also look at cell type proportions per sample, and compare this between the different groups
+
+```{r, fig.height=7, fig.width=7}
+abundance_output$abund_barplot
+``` 
 
 ### Conclusion of this step:
 __Important__: Based on the cell type abundance diagnostics, we recommend users to change their analysis settings if required, before proceeding with the rest of the analysis.
@@ -152,7 +141,7 @@ Now we will go over to the multi-group, multi-sample differential expression (DE
 
 ### Define the contrasts and covariates of interest for the DE analysis.
 
-Here, we want to compare the p-EMT-high vs the p-EMT-low group and find cell-cell communication events that are higher in high than low pEMT. We don't have other covariates to correct for in this dataset. If you would have covariates you can correct for, we strongly recommend doing this, since this is one of the main unique possibilities of the MultiNicheNet approach.
+Here, we want to compare the p-EMT-high vs the p-EMT-low group and find cell-cell communication events that are higher in high than low pEMT. We don't have other covariates to correct for in this dataset. If you would have covariates you can correct for, we recommend doing this.
 
 #### about covariates:
 Note that it is only possible to add a covariate if the different covariate categories are present in all your groups of interest as defined in the contrasts. Eg adding the covariate 'sex' is possible if both group 1 and 2 contain male and female samples. It would not be possible if group 2 does not contain male samples for example.
@@ -168,33 +157,48 @@ covariates = NA
 contrasts_oi = c("'High-Low','Low-High'")
 contrast_tbl = tibble(contrast = 
                         c("High-Low","Low-High"), 
-                      group = c("High","Low")) # not necessary to be the same as the groups in your data, but recommended for later visualization
+                      group = c("High","Low"))
 ```
 
 ### Perform the DE analysis for each cell type.
 
 ```{r}
-DE_info = get_DE_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id = celltype_id, covariates = covariates, contrasts_oi = contrasts_oi, min_cells = min_cells)
+muscat_output = muscat_analysis(
+     sce = sce,
+     celltype_id = celltype_id,
+     sample_id = sample_id,
+     group_id = group_id,
+     covariates = covariates,
+     contrasts_oi = contrasts_oi,
+     contrast_tbl = contrast_tbl)
+
 ```
 
 ### Check DE results
 
-The `DE_info` object contains both the default output as given by the `muscat::pbDS()` function, and a cleaner output table (through `muscat::resDS`).
+The `muscat_output` object contains both the default output as given by the `muscat::pbDS()` function, and a cleaner output table (through `muscat::resDS`). It also contains a table with per gene the average expression, the fraction of cells in a celltype expressing it, and the pseudobulk expression: and this grouped per celltype per sample. 
+
+Table with this latter cell type info
+
+```{r}
+# muscat_output$celltype_info %>% lapply(head)
+muscat_output$celltype_info %>% lapply(head)
+```
 
 Table with logFC and p-values for each gene-celltype-contrast:
 
 ```{r}
-DE_info$celltype_de$de_output_tidy
+muscat_output$celltype_de$celltype_de$de_output_tidy %>% arrange(p_adj) %>% head()
 ```
 
 We can also show the distribution of the p-values:
 
 ```{r, fig.width=9, fig.height=6}
-DE_info$hist_pvals
+muscat_output$celltype_de$hist_pvals
 ```
 (Note: this p-value histograms are the same for High-Low and Low-High because we only have two groups and compare them to each other - a DE gene in one comparison will then also be DE in the other comparison, with just a reversed sign of the logFC)
 
-In order to trust the p-values, the p-value distributions should be uniform distributions, with a peak allowed between 0 and 0.05 if there would be a clear biological effect in the data. This clear effect (=clear DE) seems to be present here in the Malignant cell type populations, although the histogram is not very uniformly distributed for p-values between 0.05 and 0.25. This might point to issues in the DE model definition (eg we did not add all important covariates, substructure present,...)
+In order to trust the p-values, the p-value distributions should be uniform distributions, with a peak allowed between 0 and 0.05 if there would be a clear biological effect in the data. This clear effect (=clear DE) seems to be present here in the Malignant cell type populations, although the histogram is not very uniformly distributed for p-values between 0.05 and 0.25. This might point to issues in the DE model definition. Most common issues occur when we did not add all important covariates to the model, or when there is substructure present: meaning that one of the groups is actually a combination of multiple groups.
 
 Because there might be some issues, and we anticipate this could be present in other datasets, we will now use the empiricall null procedure. This is a procedure that will define empirical p-values based on the observed distribution of the test statistic (here: logFC) and not based on the theoretical distribution. We only recommend this if the p-value distributions point to possible issues. ([ADD REFERENCE])
 NOTE: IF USING THIS: COMMUNICATE WITH JEROEN GILLIS
@@ -205,14 +209,14 @@ __User adaptation recommended__
 ```{r}
 empirical_pval = TRUE
 if(empirical_pval == TRUE){
-  DE_info_emp = get_empirical_pvals(DE_info$celltype_de$de_output_tidy)
+  DE_info_emp = get_empirical_pvals(muscat_output$celltype_de$celltype_de$de_output_tidy)
 } 
 ```
 
 Table with logFC and p-values for each gene-celltype-contrast:
 
 ```{r}
-DE_info_emp$de_output_tidy_emp
+DE_info_emp$de_output_tidy_emp %>% arrange(p_adj_emp) %>% head()
 ```
 
 The following plot shows the distribution of these corrected, empirical p-values:
@@ -233,13 +237,13 @@ If we compare the empirical p-values to the original ones before for the maligna
 As additional check, we will look for the concordance between p-values rankings of the original and empirical DE analysis (via ranking-line and upset plots):
 
 ```{r}
-comparison_plots = DE_info$celltype_de$de_output_tidy$cluster_id %>% unique() %>% lapply(function(celltype_oi, adjusted = FALSE){
+comparison_plots = muscat_output$celltype_de$celltype_de$de_output_tidy$cluster_id %>% unique() %>% lapply(function(celltype_oi, adjusted = FALSE){
   if(adjusted == TRUE){
-      de_genes_normal = DE_info$celltype_de$de_output_tidy %>% filter(cluster_id == celltype_oi) %>% filter(p_adj.glb <= 0.05) %>% pull(gene) %>% unique()
+      de_genes_normal = muscat_output$celltype_de$celltype_de$de_output_tidy %>% filter(cluster_id == celltype_oi) %>% filter(p_adj.glb <= 0.05) %>% pull(gene) %>% unique()
       de_genes_emp = DE_info_emp$de_output_tidy_emp %>% filter(cluster_id == celltype_oi) %>% filter(p_adj_emp <= 0.05) %>% pull(gene) %>% unique()
 
   } else {
-      de_genes_normal = DE_info$celltype_de$de_output_tidy %>% filter(cluster_id == celltype_oi) %>% filter(p_val <= 0.05) %>% pull(gene) %>% unique()
+      de_genes_normal = muscat_output$celltype_de$celltype_de$de_output_tidy %>% filter(cluster_id == celltype_oi) %>% filter(p_val <= 0.05) %>% pull(gene) %>% unique()
       de_genes_emp = DE_info_emp$de_output_tidy_emp %>% filter(cluster_id == celltype_oi) %>% filter(p_emp <= 0.05) %>% pull(gene) %>% unique()
 
   }
@@ -264,30 +268,40 @@ If possible it might be a good idea to include more covariates in the model, or 
 
 # Step 3: Downstream analysis and visualization
 
-
+Visualize the expression of some DE genes: here as example: genes higher in the pEMT high tumors in the Malignant cell type
 
 ```{r}
-receiver_oi = "Malignant"
+celltype_oi = "Malignant"
 group_oi = "High"
 
-targets_oi = DE_info$celltype_de$de_output_tidy %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == receiver_oi) %>% filter(p_adj <= 0.05) %>% arrange(p_adj) %>% pull(gene) %>% unique()
-
+DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
+DE_genes
 ```
+
+(Note: Due to the pseudoubulking, Muscat is underpowered. Therefore it is possible that are sometimes no significant DE genes after multiple testing correction. In that case, using less stringent cutoffs is better)
+
 
 First, make a violin plot
 
 ```{r, fig.width=14, fig.height=5}
-target_oi = targets_oi[1]
+gene_oi = DE_genes[1]
 
-make_target_violin_plot(sce_receiver = sce, target_oi = target_oi, receiver_oi = receiver_oi, group_oi = group_oi, group_id = group_id, sample_id, celltype_id_receiver = celltype_id)
-
+violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi = celltype_oi, group_id = group_id, sample_id = sample_id, celltype_id = celltype_id)
+violin_plot
 ```
 
-Then a feature plot
+Then a Dotplot
 
-```{r, fig.width=18, fig.height=8}
-target_oi = targets_oi[1]
+```{r, fig.width=7, fig.height=12}
+dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
+dotplots$pseudobulk_plot 
+dotplots$singlecell_plot
+```
 
-make_target_feature_plot(sce_receiver = sce, target_oi = target_oi, group_oi = group_oi, group_id = group_id, celltype_id_receiver = celltype_id, receivers_oi = c("Malignant","myofibroblast","CAF")) 
+If wanted: possible to switch the x and y axis of the plot
 
+```{r, fig.width=12, fig.height=5.5}
+dotplots_reversed = make_DEgene_dotplot_pseudobulk_reversed(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
+dotplots_reversed$pseudobulk_plot
+dotplots_reversed$singlecell_plot
 ```

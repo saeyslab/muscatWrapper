@@ -33,29 +33,30 @@ get_abundance_info = function(sce, sample_id, group_id, celltype_id, min_cells =
   metadata_abundance = SummarizedExperiment::colData(sce)[,c(sample_id, group_id, celltype_id)] %>% tibble::as_tibble()
   colnames(metadata_abundance) =c("sample_id", "group_id", "celltype_id")
 
-  ## barplots
-  # celltype proportion per sample
-  abund_barplot = metadata_abundance %>% mutate(celltype_id = factor(celltype_id)) %>% ggplot() +
-    aes(x = sample_id, fill = celltype_id) +
-    geom_bar(position = "fill") +
-    facet_grid(. ~ group_id, scales = "free", space = "free_x") +
-    theme_light() +
-    theme(
-      axis.ticks = element_blank(),
-      axis.text.y = element_text(size = 9),
-      axis.text.x = element_text(size = 9,  angle = 90,hjust = 0),
-      strip.text.x.top = element_text(angle = 0),
-      panel.spacing.x = unit(1.5, "lines"),
-      strip.text.x = element_text(size = 11, color = "black", face = "bold"),
-      strip.text.y = element_text(size = 9, color = "black", face = "bold", angle = 0),
-      strip.background = element_rect(color="darkgrey", fill="whitesmoke", size=1.5, linetype="solid")
-    ) + ggtitle("Cell type proportions per sample") + ylab("proportion") + xlab("sample")
 
   ## plot per sample and cell type
   abundance_data = metadata_abundance %>% tibble::as_tibble() %>% dplyr::group_by(sample_id , celltype_id) %>% dplyr::count() %>% dplyr::inner_join(metadata_abundance %>% tibble::as_tibble() %>% dplyr::distinct(sample_id , group_id ), by = "sample_id")
   abundance_data = abundance_data %>% dplyr::mutate(keep = n >= min_cells) %>% dplyr::mutate(keep = factor(keep, levels = c(TRUE,FALSE)))
 
   if(is.na(covariates)){
+    ## barplots
+    # celltype proportion per sample
+    abund_barplot = metadata_abundance %>% mutate(celltype_id = factor(celltype_id)) %>% ggplot() +
+      aes(x = sample_id, fill = celltype_id) +
+      geom_bar(position = "fill") +
+      facet_grid(. ~ group_id, scales = "free", space = "free_x") +
+      theme_light() +
+      theme(
+        axis.ticks = element_blank(),
+        axis.text.y = element_text(size = 9),
+        axis.text.x = element_text(size = 9,  angle = 90,hjust = 0),
+        strip.text.x.top = element_text(angle = 0),
+        panel.spacing.x = unit(1.5, "lines"),
+        strip.text.x = element_text(size = 11, color = "black", face = "bold"),
+        strip.text.y = element_text(size = 9, color = "black", face = "bold", angle = 0),
+        strip.background = element_rect(color="darkgrey", fill="whitesmoke", size=1.5, linetype="solid")
+      ) + ggtitle("Cell type proportions per sample") + ylab("proportion") + xlab("sample")
+
     abund_plot = abundance_data %>% ggplot(aes(sample_id, n, fill = keep)) + geom_bar(stat="identity") + scale_fill_manual(values = c("royalblue", "lightcoral")) + facet_grid(celltype_id ~ group_id, scales = "free", space = "free_x") +
       scale_x_discrete(position = "top") +
       theme_light() +
@@ -85,17 +86,36 @@ get_abundance_info = function(sce, sample_id, group_id, celltype_id, min_cells =
 
     abundance_data = metadata_abundance %>% tibble::as_tibble() %>% dplyr::group_by(sample_id , celltype_id) %>% dplyr::count() %>% dplyr::inner_join(metadata_abundance %>% tibble::as_tibble() %>% dplyr::distinct(sample_id , group_covariate_id), by = "sample_id")
     abundance_data = abundance_data %>% dplyr::mutate(keep = n >= min_cells) %>% dplyr::mutate(keep = factor(keep, levels = c(TRUE,FALSE)))
+    abundance_data = abundance_data%>% dplyr::inner_join(metadata_abundance %>% distinct(sample_id, group_id, covariate_oi), by = "sample_id")
 
     for(celltype_oi in abundance_data$celltype_id %>% unique()){
       n_group_covariate_id = abundance_data %>% dplyr::filter(keep == TRUE & celltype_id == celltype_oi) %>% pull(group_covariate_id) %>% unique() %>% length()
-      n_groups = abundance_data %>% dplyr::inner_join(metadata_abundance %>% dplyr::distinct(sample_id, group_id, covariate_oi), by = "sample_id") %>% dplyr::filter(keep == TRUE) %>% pull(group_id) %>% unique() %>% length()
-      n_covariates = abundance_data %>% dplyr::inner_join(metadata_abundance %>% dplyr::distinct(sample_id, group_id, covariate_oi), by = "sample_id") %>% dplyr::filter(keep == TRUE) %>% pull(covariate_oi) %>% unique() %>% length()
-
+      n_groups = abundance_data %>% dplyr::inner_join(metadata_abundance %>% dplyr::distinct(sample_id, group_id, covariate_oi), by = c("sample_id","group_id","covariate_oi")) %>% dplyr::filter(keep == TRUE) %>% dplyr::pull(group_id) %>% unique() %>% length()
+      n_covariates = abundance_data %>% dplyr::inner_join(metadata_abundance %>% dplyr::distinct(sample_id, group_id, covariate_oi), by = c("sample_id","group_id","covariate_oi")) %>% dplyr::filter(keep == TRUE) %>% dplyr::pull(covariate_oi) %>% unique() %>% length()
       if(n_group_covariate_id < n_groups*n_covariates){
         warning(paste("For celltype",celltype_oi,"not all group-covariate combinations exist - this will likely lead to errors downstream in batch correction and DE analysis"))
       }
 
     }
+
+    ## barplots
+    # celltype proportion per sample
+    abund_barplot = metadata_abundance %>% mutate(celltype_id = factor(celltype_id)) %>% ggplot() +
+      aes(x = sample_id, fill = celltype_id) +
+      geom_bar(position = "fill") +
+      facet_grid(. ~ group_covariate_id, scales = "free", space = "free_x") +
+      theme_light() +
+      theme(
+        axis.ticks = element_blank(),
+        axis.text.y = element_text(size = 9),
+        axis.text.x = element_text(size = 9,  angle = 90,hjust = 0),
+        strip.text.x.top = element_text(angle = 0),
+        panel.spacing.x = unit(1.5, "lines"),
+        strip.text.x = element_text(size = 11, color = "black", face = "bold"),
+        strip.text.y = element_text(size = 9, color = "black", face = "bold", angle = 0),
+        strip.background = element_rect(color="darkgrey", fill="whitesmoke", size=1.5, linetype="solid")
+      ) + ggtitle("Cell type proportions per sample") + ylab("proportion") + xlab("sample")
+
 
     abund_plot = abundance_data %>% ggplot(aes(sample_id, n, fill = keep)) + geom_bar(stat="identity") + scale_fill_manual(values = c("royalblue", "lightcoral")) + facet_grid(celltype_id ~ group_covariate_id, scales = "free", space = "free_x") +
       scale_x_discrete(position = "top") +
@@ -111,7 +131,7 @@ get_abundance_info = function(sce, sample_id, group_id, celltype_id, min_cells =
         strip.text.x = element_text(size = 11, color = "black", face = "bold"),
         strip.text.y = element_text(size = 9, color = "black", face = "bold", angle = 0),
         strip.background = element_rect(color="darkgrey", fill="whitesmoke", size=1.5, linetype="solid")
-      ) + geom_hline(yintercept = min_cells, color = "red", linetype  = "longdash")  + ggtitle("Cell type abundances per sample") + ylab("# cells per sample-celltype combination")
+      ) + geom_hline(yintercept = min_cells, color = "red", linetype  = "longdash")  + ggtitle("Cell type abundances per sample") + ylab("# cells per sample-celltype combination") + xlab("")
 
 
     abund_plot_boxplot = abundance_data %>% ggplot(aes(group_covariate_id, n, group = group_covariate_id, color = group_covariate_id)) +

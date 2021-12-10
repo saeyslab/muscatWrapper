@@ -4,7 +4,7 @@
 \alias{make_DEgene_dotplot_pseudobulk}
 \title{make_DEgene_dotplot_pseudobulk}
 \usage{
-make_DEgene_dotplot_pseudobulk(genes_oi, celltype_info, abundance_data, celltype_oi)
+make_DEgene_dotplot_pseudobulk(genes_oi, celltype_info, abundance_data, celltype_oi, groups_oi = NA)
 }
 \arguments{
 \item{genes_oi}{Character vector with names of genes to visualize}
@@ -14,6 +14,8 @@ make_DEgene_dotplot_pseudobulk(genes_oi, celltype_info, abundance_data, celltype
 \item{abundance_data}{`abundance_data` slot of the output of the `get_abundance_info()` function}
 
 \item{celltype_oi}{Character vector with names of celltype of interest}
+
+\item{groups_oi}{Which groups to show? Default: NA -- will show all groups.}
 }
 \value{
 Gene expression dotplot list: pseudobulk version and single-cell version

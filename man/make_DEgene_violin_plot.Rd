@@ -4,7 +4,7 @@
 \alias{make_DEgene_violin_plot}
 \title{make_DEgene_violin_plot}
 \usage{
-make_DEgene_violin_plot(sce, gene_oi, celltype_oi, group_id, sample_id, celltype_id, covariate_oi = NA)
+make_DEgene_violin_plot(sce, gene_oi, celltype_oi, group_id, sample_id, celltype_id, covariate_oi = NA, groups_oi = NA)
 }
 \arguments{
 \item{sce}{SingleCellExperiment object of the scRNAseq data of interest.}
@@ -20,6 +20,8 @@ make_DEgene_violin_plot(sce, gene_oi, celltype_oi, group_id, sample_id, celltype
 \item{celltype_id}{Name of the column in the meta data of sce that indicates the cell type of a cell.}
 
 \item{covariate_oi}{Name of a covariate of interest based on which the visualization will be split. Default: NA: no covariate.}
+
+\item{groups_oi}{Which groups to show? Default: NA -- will show all groups.}
 }
 \value{
 ggplot object: Violin plot of a gene gene of interest: per sample, and samples are grouped per group
