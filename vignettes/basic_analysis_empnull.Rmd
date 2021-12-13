@@ -201,7 +201,6 @@ muscat_output$celltype_de$hist_pvals
 In order to trust the p-values, the p-value distributions should be uniform distributions, with a peak allowed between 0 and 0.05 if there would be a clear biological effect in the data. This clear effect (=clear DE) seems to be present here in the Malignant cell type populations, although the histogram is not very uniformly distributed for p-values between 0.05 and 0.25. This might point to issues in the DE model definition. Most common issues occur when we did not add all important covariates to the model, or when there is substructure present: meaning that one of the groups is actually a combination of multiple groups.
 
 Because there might be some issues, and we anticipate this could be present in other datasets, we will now use the empiricall null procedure. This is a procedure that will define empirical p-values based on the observed distribution of the test statistic (here: logFC) and not based on the theoretical distribution. We only recommend this if the p-value distributions point to possible issues. ([ADD REFERENCE])
-NOTE: IF USING THIS: COMMUNICATE WITH JEROEN GILLIS
 
 ### Empirical Null procedure
 

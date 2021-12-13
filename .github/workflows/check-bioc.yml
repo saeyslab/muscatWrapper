@@ -190,14 +190,14 @@ jobs:
         shell: Rscript {0}
 
       - name: Install BiocGenerics
-        if:  env.has_RUnit == 'true'
+        # if:  env.has_RUnit == 'true'
         run: |
           ## Install BiocGenerics
           BiocManager::install("BiocGenerics", update = FALSE)
         shell: Rscript {0}
 
       - name: Install covr
-        if: github.ref == 'refs/heads/master' && env.run_covr == 'true' && runner.os == 'Linux'
+        # if: github.ref == 'refs/heads/master' && env.run_covr == 'true' && runner.os == 'Linux'
         run: |
           remotes::install_cran("covr")
         shell: Rscript {0}
@@ -247,19 +247,23 @@ jobs:
       #         `no-check-bioc-help` = TRUE
       #     )
       #   shell: Rscript {0}
-
+      - name: Upload coverage to Codecov (alternative)
+            uses: codecov/codecov-action@v1
       - name: Test coverage
-        if: github.ref == 'refs/heads/master' && env.run_covr == 'true' && runner.os == 'Linux'
+        # if: github.ref == 'refs/heads/master' && env.run_covr == 'true' && runner.os == 'Linux'
         run: |
-          covr::codecov(token = "8c8a0ffb-2b8e-45fe-99f4-2ba647c515a9")
+          covr::codecov()
         shell: Rscript {0}
 
       - name: Install package
-        if: github.ref == 'refs/heads/master' && env.run_pkgdown == 'true' && runner.os == 'Linux'
+        # if: github.ref == 'refs/heads/master' && env.run_pkgdown == 'true' && runner.os == 'Linux'
+        if: github.ref == 'refs/heads/master'  && runner.os == 'Linux'
         run: R CMD INSTALL .
 
       - name: Deploy package
-        if: github.ref == 'refs/heads/master' && env.run_pkgdown == 'true' && runner.os == 'Linux'
+        # if: github.ref == 'refs/heads/master' && env.run_pkgdown == 'true' && runner.os == 'Linux'
+        if: env.run_pkgdown == 'true' && runner.os == 'Linux'
+
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
