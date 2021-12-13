@@ -1,7 +1,7 @@
 ---
-title: "Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application"
+title: "muscatWrapper Visualization Preparation"
 author: "Robin Browaeys"
-date: "2021-12-10"
+date: "2021-12-13"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Muscat wrapper: HNSCC application}
@@ -10,7 +10,7 @@ vignette: >
 ---
 
 <!-- github markdown built using 
-rmarkdown::render("vignettes/basic_analysis.Rmd", output_format = "github_document")
+rmarkdown::render("vignettes/visualization_preparation.Rmd", output_format = "github_document")
 -->
 
 ```{r setup, include = FALSE}
@@ -244,6 +244,3 @@ dotplots_reversed = make_DEgene_dotplot_pseudobulk_reversed(genes_oi = DE_genes,
 dotplots_reversed$pseudobulk_plot
 dotplots_reversed$singlecell_plot
 ```
-
-If you would prefer applying your own code for the differential expression analysis, but still use these visualizations, you can check: [muscatWrapper Visualization Preparation](vignettes/visualization_preparation.md):`vignette("visualization_preparation", package="muscatWrapper")`
-

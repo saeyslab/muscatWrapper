@@ -10,7 +10,8 @@ rmarkdown::render("README.Rmd",output_format = "md_document")
 [![R build
 status](https://github.com/saeyslab/muscatWrapper/workflows/R-CMD-check-bioc/badge.svg)](https://github.com/saeyslab/muscatWrapper/actions)
 [![Coverage
-Status](https://codecov.io/gh/saeyslab/muscatWrapper/branch/master/graph/badge.svg?token=0X627I4TM7)](https://codecov.io/gh/saeyslab/muscatWrapper)
+Status](https://codecov.io/gh/saeyslab/muscatWrapper/branch/master/graph/badge.svg?token=VRCzhbDGBc)](https://codecov.io/gh/saeyslab/muscatWrapper)
+
 <!-- badges: end -->
 
 **muscatWrapper: the R package containing wrapper functions for easier
@@ -54,11 +55,33 @@ Linux (Ubuntu) and Mac (most recently tested R version: R 4.1.0).
 ## Learning to use muscatWrapper
 
 In the following vignettes, you can find how to do a multi-sample
-multi-condition DE analysis:
+multi-condition DE analysis with muscatWrapper:
 
 -   [Multi-sample Multi-condition Differential Expression Analysis via
     Muscat: HNSCC application](vignettes/basic_analysis.md):
     `vignette("basic_analysis", package="muscatWrapper")`
+
+For a detailed statistical analysis and interpretation of DE p-values,
+and the use of the empiricall null procedure, check:
+
+-   [Multi-sample Multi-condition Differential Expression Analysis via
+    Muscat: HNSCC application – Empirical Null
+    procedure](vignettes/basic_analysis_empnull.md):`vignette("basic_analysis_empnull", package="muscatWrapper")`
+
+For a detailed statistical analysis and interpretation of DE p-values,
+and the use of the empiricall null procedure, check:
+
+-   [Multi-sample Multi-condition Differential Expression Analysis via
+    Muscat: HNSCC application – Batch
+    Correction](vignettes/basic_analysis_batchcor.md):`vignette("basic_analysis_batchcor", package="muscatWrapper")`
+
+If you would want to use other code for the multi-sample,
+multi-condition DE analysis (e.g. with the original muscat code,
+scran::pseudoBulkDGE, …), but still use the visualizations provided by
+this package, you can check the following vignette:
+
+-   [muscatWrapper Visualization
+    Preparation](vignettes/visualization_preparation.md):`vignette("visualization_preparation", package="muscatWrapper")`
 
 ## References
 

@@ -1,7 +1,7 @@
 ---
-title: "Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application"
+title: "Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application -- Batch Correction"
 author: "Robin Browaeys"
-date: "2021-12-10"
+date: "2021-12-13"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Muscat wrapper: HNSCC application}
@@ -10,7 +10,7 @@ vignette: >
 ---
 
 <!-- github markdown built using 
-rmarkdown::render("vignettes/basic_analysis.Rmd", output_format = "github_document")
+rmarkdown::render("vignettes/basic_analysis_batchcor.Rmd", output_format = "github_document")
 -->
 
 ```{r setup, include = FALSE}
@@ -148,9 +148,6 @@ Note that it is only possible to add a covariate if the different covariate cate
 
 If you have paired data, meaning that you have samples in group 1 (eg steady-state) and group 2 (eg treatment) coming from the same patient, we strongly recommend exploiting this benefit in your experimental design by using the patient id as covariate.
 
-For performing batch/covariate correction, recommend checking following vignette for this! [Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application -- Batch Correction](basic_analysis_batchcor.md):`vignette("basic_analysis_batchcor", package="muscatWrapper")`
-
-
 #### about contrasts and how to set them:
 Note the format to indicate the contrasts! (This formatting should be adhered to very strictly, and white spaces are not allowed)
 
@@ -202,8 +199,72 @@ muscat_output$celltype_de$hist_pvals
 (Note: this p-value histograms are the same for High-Low and Low-High because we only have two groups and compare them to each other - a DE gene in one comparison will then also be DE in the other comparison, with just a reversed sign of the logFC)
 
 In order to trust the p-values, the p-value distributions should be uniform distributions, with a peak allowed between 0 and 0.05 if there would be a clear biological effect in the data. This clear effect (=clear DE) seems to be present here in the Malignant cell type populations, although the histogram is not very uniformly distributed for p-values between 0.05 and 0.25. This might point to issues in the DE model definition. Most common issues occur when we did not add all important covariates to the model, or when there is substructure present: meaning that one of the groups is actually a combination of multiple groups.
- 
-Because there might be some issues, and we anticipate this could be present in other datasets, we could use the empiricall null procedure. Check the other vignette for this! [Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application -- Empirical Null procedure](basic_analysis_empnull.md):`vignette("basic_analysis_empnull", package="muscatWrapper")`
+
+Because there might be some issues, and we anticipate this could be present in other datasets, we will now use the empiricall null procedure. This is a procedure that will define empirical p-values based on the observed distribution of the test statistic (here: logFC) and not based on the theoretical distribution. We only recommend this if the p-value distributions point to possible issues. ([ADD REFERENCE])
+NOTE: IF USING THIS: COMMUNICATE WITH JEROEN GILLIS
+
+### Empirical Null procedure
+
+__User adaptation recommended__
+```{r}
+empirical_pval = TRUE
+if(empirical_pval == TRUE){
+  DE_info_emp = get_empirical_pvals(muscat_output$celltype_de$celltype_de$de_output_tidy)
+} 
+```
+
+Table with logFC and p-values for each gene-celltype-contrast:
+
+```{r}
+DE_info_emp$de_output_tidy_emp %>% arrange(p_adj_emp) %>% head()
+```
+
+The following plot shows the distribution of these corrected, empirical p-values:
+
+```{r, fig.width=9, fig.height=6}
+DE_info_emp$hist_pvals_emp
+```
+The following plots show how well the correction worked. The green fitted curve should fit well with the histogram. If not, this might point to some issues in the DE model definition.
+
+```{r, fig.width=7, fig.height=7}
+DE_info_emp$z_distr_plots_emp_pval
+```
+
+In general, these plots looks fine, except for the Malignant cells. As discussed in the previous plots: there might be an issue here. One possible explanation might be that there is additional substructure in the data. This could make sense because the pEMT high group consists both of pEMT very-high and pEMT high samples according to the finer subdivision/metadata column `pEMT_fine`. Another reason for the possible substructure: malignant cells of each tumor are very different because of genetic aberrations.
+
+If we compare the empirical p-values to the original ones before for the malignant cells, we see that through the empirical null procedure, we lost some DE genes in malignant cells. But it is likely that the DE genes that er kept are the most bona fide ones.
+
+As additional check, we will look for the concordance between p-values rankings of the original and empirical DE analysis (via ranking-line and upset plots):
+
+```{r}
+comparison_plots = muscat_output$celltype_de$celltype_de$de_output_tidy$cluster_id %>% unique() %>% lapply(function(celltype_oi, adjusted = FALSE){
+  if(adjusted == TRUE){
+      de_genes_normal = muscat_output$celltype_de$celltype_de$de_output_tidy %>% filter(cluster_id == celltype_oi) %>% filter(p_adj.glb <= 0.05) %>% pull(gene) %>% unique()
+      de_genes_emp = DE_info_emp$de_output_tidy_emp %>% filter(cluster_id == celltype_oi) %>% filter(p_adj_emp <= 0.05) %>% pull(gene) %>% unique()
+
+  } else {
+      de_genes_normal = muscat_output$celltype_de$celltype_de$de_output_tidy %>% filter(cluster_id == celltype_oi) %>% filter(p_val <= 0.05) %>% pull(gene) %>% unique()
+      de_genes_emp = DE_info_emp$de_output_tidy_emp %>% filter(cluster_id == celltype_oi) %>% filter(p_emp <= 0.05) %>% pull(gene) %>% unique()
+
+  }
+
+  upset_df = tibble(gene = union(de_genes_normal, de_genes_emp), normal = as.double(gene %in% de_genes_normal), empirical = as.double(gene %in% de_genes_emp)) %>% data.frame() %>% magrittr::set_rownames(.$gene) %>% dplyr::select(-gene)
+  colnames(upset_df) = paste(colnames(upset_df), celltype_oi, sep = "-")
+  p_upset = UpSetR::upset(upset_df, sets.bar.color = "#56B4E9", order.by = "freq", empty.intersections = "on") 
+  
+  p_ranking = DE_info_emp$de_output_tidy_emp %>% filter(gene %in% union(de_genes_normal, de_genes_emp) & cluster_id == celltype_oi) %>% group_by(cluster_id, contrast) %>% mutate(normal = rank(p_val), empirical = rank(p_emp)) %>% filter(normal != empirical) %>% mutate(empirical_lower = empirical < normal) %>% tidyr::gather(rank_type, rank, normal:empirical) %>% dplyr::select(gene, rank_type, rank, empirical_lower)  %>% 
+    ggplot(aes(rank_type, rank, group = gene, color = empirical_lower)) + geom_line(aes(group = gene)) + facet_grid(cluster_id ~ contrast) + theme_bw()
+  
+  return(list(p_upset, p_ranking))
+  
+}, adjusted = FALSE) 
+comparison_plots
+```
+
+### Conclusion of the diagnostic plots concerning the DE analysis
+
+P-value histograms of both the normal and empirical p-values indicate there might be some problems in the DE model definition, certainly for malignant cells.
+If possible it might be a good idea to include more covariates in the model, or use the `pEMT_fine` group definition instead (which we will do later in this vignette). 
 
 # Step 3: Downstream analysis and visualization
 
@@ -217,8 +278,8 @@ DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(
 DE_genes
 ```
 
-(Note 1 : Due to the pseudoubulking, single-cell level information is lost and Muscat can be underpowered. Therefore it is possible that are sometimes no significant DE genes after multiple testing correction. In that case, using less stringent cutoffs is better)
-(Note 2 : If having a few samples per group (<5), it is likely that some DE genes will be driven by an outlier sample. Therefore it is always necessary to visualize the expression of the DE genes in the violin and dotplots shown here)
+(Note: Due to the pseudoubulking, Muscat is underpowered. Therefore it is possible that are sometimes no significant DE genes after multiple testing correction. In that case, using less stringent cutoffs is better)
+
 
 First, make a violin plot
 
@@ -244,6 +305,3 @@ dotplots_reversed = make_DEgene_dotplot_pseudobulk_reversed(genes_oi = DE_genes,
 dotplots_reversed$pseudobulk_plot
 dotplots_reversed$singlecell_plot
 ```
-
-If you would prefer applying your own code for the differential expression analysis, but still use these visualizations, you can check: [muscatWrapper Visualization Preparation](vignettes/visualization_preparation.md):`vignette("visualization_preparation", package="muscatWrapper")`
-

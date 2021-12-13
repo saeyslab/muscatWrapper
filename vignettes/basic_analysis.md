@@ -1,4 +1,5 @@
-Muscat wrapper: HNSCC application
+Multi-sample Multi-condition Differential Expression Analysis via
+Muscat: HNSCC application
 ================
 Robin Browaeys
 2021-12-10
@@ -65,25 +66,25 @@ sce = readRDS(url("https://zenodo.org/record/5196144/files/sce_hnscc.rds"))
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "celltype")
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "tumor")
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-40-2.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT")
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-40-3.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-2-3.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT_fine")
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-40-4.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-2-4.png)<!-- -->
 
 Now we will define in which metadata columns we can find the **group**,
 **sample** and **cell type** IDs
@@ -192,7 +193,7 @@ you can run the following code:
 abundance_output$abund_plot_sample
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 Celltype-sample combinations that won’t be considered are indicated in
 red (because they have less cells than the `min_cells` threshold
 indicated by the red dashed line)
@@ -232,7 +233,7 @@ some caution.
 abundance_output$abund_plot_group
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 Differential abundance looks quite OK for the cell types kept for the DE
 analysis (i.e. CAF, Malignant and myofibroblast)
 
@@ -243,7 +244,7 @@ between the different groups
 abundance_output$abund_barplot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ### Conclusion of this step:
 
@@ -276,6 +277,11 @@ If you have paired data, meaning that you have samples in group 1 (eg
 steady-state) and group 2 (eg treatment) coming from the same patient,
 we strongly recommend exploiting this benefit in your experimental
 design by using the patient id as covariate.
+
+For performing batch/covariate correction, recommend checking following
+vignette for this! [Multi-sample Multi-condition Differential Expression
+Analysis via Muscat: HNSCC application – Batch
+Correction](basic_analysis_batchcor.md):`vignette("basic_analysis_batchcor", package="muscatWrapper")`
 
 #### about contrasts and how to set them:
 
@@ -423,7 +429,7 @@ We can also show the distribution of the p-values:
 muscat_output$celltype_de$hist_pvals
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-52-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 (Note: this p-value histograms are the same for High-Low and Low-High
 because we only have two groups and compare them to each other - a DE
 gene in one comparison will then also be DE in the other comparison,
@@ -442,7 +448,10 @@ multiple groups.
 
 Because there might be some issues, and we anticipate this could be
 present in other datasets, we could use the empiricall null procedure.
-Check the other vignette for this!
+Check the other vignette for this! [Multi-sample Multi-condition
+Differential Expression Analysis via Muscat: HNSCC application –
+Empirical Null
+procedure](basic_analysis_empnull.md):`vignette("basic_analysis_empnull", package="muscatWrapper")`
 
 # Step 3: Downstream analysis and visualization
 
@@ -460,10 +469,14 @@ DE_genes
 ## [45] "ARPC1B"   "RRAS"     "TUBB6"    "RHOD"     "IL24"     "C19orf33" "PDGFC"    "MMP10"    "IL1RAP"
 ```
 
-(Note: Due to the pseudoubulking, Muscat is underpowered. Therefore it
-is possible that are sometimes no significant DE genes after multiple
-testing correction. In that case, using less stringent cutoffs is
-better)
+(Note 1 : Due to the pseudoubulking, single-cell level information is
+lost and Muscat can be underpowered. Therefore it is possible that are
+sometimes no significant DE genes after multiple testing correction. In
+that case, using less stringent cutoffs is better) (Note 2 : If having a
+few samples per group (&lt;5), it is likely that some DE genes will be
+driven by an outlier sample. Therefore it is always necessary to
+visualize the expression of the DE genes in the violin and dotplots
+shown here)
 
 First, make a violin plot
 
@@ -474,7 +487,7 @@ violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi 
 violin_plot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-54-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 Then a Dotplot
 
@@ -483,13 +496,13 @@ dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = m
 dotplots$pseudobulk_plot 
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-55-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 ``` r
 dotplots$singlecell_plot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-55-2.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
 
 If wanted: possible to switch the x and y axis of the plot
 
@@ -498,10 +511,15 @@ dotplots_reversed = make_DEgene_dotplot_pseudobulk_reversed(genes_oi = DE_genes,
 dotplots_reversed$pseudobulk_plot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-56-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
 ``` r
 dotplots_reversed$singlecell_plot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-56-2.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->
+
+If you would prefer applying your own code for the differential
+expression analysis, but still use these visualizations, you can check:
+[muscatWrapper Visualization
+Preparation](vignettes/visualization_preparation.md):`vignette("visualization_preparation", package="muscatWrapper")`

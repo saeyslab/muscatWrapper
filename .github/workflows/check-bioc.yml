@@ -135,7 +135,7 @@ jobs:
 
           ## For installing usethis's dependency gert
           brew install libgit2
-          
+
           # cairo also necessary?
           brew install --cask xquartz
           brew install cairo
@@ -172,10 +172,6 @@ jobs:
           BiocManager::install("scran", update = FALSE)
           remotes::install_cran("tidyverse")
           remotes::install_cran("covr") #### remove this later? this to currently fix the Ubuntu error
-          remotes::install_cran("ggraph") 
-          remotes::install_cran("tidygraph") 
-          BiocManager::install("Nebulosa", update = FALSE)
-          remotes::install_github("saeyslab/nichenetr",build_vignettes = FALSE)
           install.packages('TMB', type = 'source') #### remove this later? this to currently fix the Mac error
           remotes::install_local(dependencies = TRUE, repos = BiocManager::repositories(), build_vignettes = FALSE, upgrade = TRUE)
         continue-on-error: true
@@ -186,7 +182,7 @@ jobs:
           ## Pass #2 at installing dependencies
           message(paste('****', Sys.time(), 'pass number 2 at installing dependencies: any remaining dependencies ****'))
           remotes::install_local(dependencies = TRUE, repos = BiocManager::repositories(), build_vignettes = FALSE, upgrade = TRUE)
-          
+
           ## For running the checks
           message(paste('****', Sys.time(), 'installing rcmdcheck and BiocCheck ****'))
           remotes::install_cran("rcmdcheck")
@@ -255,10 +251,9 @@ jobs:
       - name: Test coverage
         if: github.ref == 'refs/heads/master' && env.run_covr == 'true' && runner.os == 'Linux'
         run: |
-          covr::codecov(token = "04b6740f-c73f-42b1-af65-dc6dfb4a078a")
-          # covr::codecov(token = "${{ secrets.CODECOV_TOKEN }}")
+          covr::codecov(token = "8c8a0ffb-2b8e-45fe-99f4-2ba647c515a9")
         shell: Rscript {0}
-      
+
       - name: Install package
         if: github.ref == 'refs/heads/master' && env.run_pkgdown == 'true' && runner.os == 'Linux'
         run: R CMD INSTALL .
