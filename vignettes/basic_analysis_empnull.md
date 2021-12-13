@@ -613,15 +613,20 @@ group_oi = "High"
 
 DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
 DE_genes
-##  [1] "RAB31"    "AGTRAP"   "CIB1"     "AHNAK2"   "GSDMC"    "ITGB6"    "ITGA3"    "PDLIM7"   "S100A2"   "CA2"      "ACTN1"    "GALNT6"   "ANXA8L1"  "ITGB1"    "KCNK6"    "PLEK2"    "GJB6"     "ATP6V1D"  "RAB38"    "PPIC"     "CSPG4"    "EHD2"    
-## [23] "INHBA"    "GBP3"     "CAV1"     "KRT16"    "MMP1"     "GNAI1"    "IL20"     "SERINC2"  "SLC31A2"  "ANXA8L2"  "GALE"     "SAMD9L"   "LTBP1"    "MT2A"     "CGB8"     "THSD1"    "NDFIP2"   "GPR68"    "RSU1"     "EREG"     "FSTL3"    "GJB2"    
-## [45] "ARPC1B"   "RRAS"     "TUBB6"    "RHOD"     "IL24"     "C19orf33" "PDGFC"    "MMP10"    "IL1RAP"
+##  [1] "RAB31"    "AGTRAP"   "CIB1"     "AHNAK2"   "GSDMC"    "ITGB6"    "ITGA3"    "PDLIM7"   "S100A2"   "CA2"      "ACTN1"    "GALNT6"   "ANXA8L1"  "ITGB1"    "KCNK6"    "PLEK2"   
+## [17] "GJB6"     "ATP6V1D"  "RAB38"    "PPIC"     "CSPG4"    "EHD2"     "INHBA"    "GBP3"     "CAV1"     "KRT16"    "MMP1"     "GNAI1"    "IL20"     "SERINC2"  "SLC31A2"  "ANXA8L2" 
+## [33] "GALE"     "SAMD9L"   "LTBP1"    "MT2A"     "CGB8"     "THSD1"    "NDFIP2"   "GPR68"    "RSU1"     "EREG"     "FSTL3"    "GJB2"     "ARPC1B"   "RRAS"     "TUBB6"    "RHOD"    
+## [49] "IL24"     "C19orf33" "PDGFC"    "MMP10"    "IL1RAP"
 ```
 
-(Note: Due to the pseudoubulking, Muscat is underpowered. Therefore it
-is possible that are sometimes no significant DE genes after multiple
-testing correction. In that case, using less stringent cutoffs is
-better)
+(Note 1 : Due to the pseudoubulking, single-cell level information is
+lost and Muscat can be underpowered. Therefore it is possible that are
+sometimes no significant DE genes after multiple testing correction. In
+that case, using less stringent cutoffs is better) (Note 2 : If having a
+few samples per group (&lt;5), it is likely that some DE genes will be
+driven by an outlier sample. Therefore it is always necessary to
+visualize the expression of the DE genes in the violin and dotplots
+shown here)
 
 First, make a violin plot
 

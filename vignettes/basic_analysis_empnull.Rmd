@@ -4,7 +4,7 @@ author: "Robin Browaeys"
 date: "2021-12-13"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Muscat wrapper: HNSCC application}
+  %\VignetteIndexEntry{Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application -- Empirical Null procedure}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -277,7 +277,8 @@ DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(
 DE_genes
 ```
 
-(Note: Due to the pseudoubulking, Muscat is underpowered. Therefore it is possible that are sometimes no significant DE genes after multiple testing correction. In that case, using less stringent cutoffs is better)
+(Note 1 : Due to the pseudoubulking, single-cell level information is lost and Muscat can be underpowered. Therefore it is possible that are sometimes no significant DE genes after multiple testing correction. In that case, using less stringent cutoffs is better)
+(Note 2 : If having a few samples per group (<5), it is likely that some DE genes will be driven by an outlier sample. Therefore it is always necessary to visualize the expression of the DE genes in the violin and dotplots shown here)
 
 
 First, make a violin plot

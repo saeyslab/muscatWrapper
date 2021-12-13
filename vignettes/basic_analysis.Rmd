@@ -4,7 +4,7 @@ author: "Robin Browaeys"
 date: "2021-12-10"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Muscat wrapper: HNSCC application}
+  %\VignetteIndexEntry{Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

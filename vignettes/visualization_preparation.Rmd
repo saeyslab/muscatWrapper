@@ -4,7 +4,7 @@ author: "Robin Browaeys"
 date: "2021-12-13"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Muscat wrapper: HNSCC application}
+  %\VignetteIndexEntry{muscatWrapper Visualization Preparation}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -22,23 +22,22 @@ knitr::opts_chunk$set(
 )
 ```
 
-In this vignette, you can learn how to perform a muscat differential state (DS) analysis. A DS analysis can be performed if you have multi-sample, multi-group single-cell data. For each cell type of interest, muscat will compare the sample-wise expression of all genes between groups of interest. Therefore, the absolute minimum of meta data you need to have, are following columns indicating for each cell: the **group**, **sample** and **cell type**.
+In this vignette, you can learn how to use `muscatWrapper` only for visualization and not for DE analysis itself. muscatWrapper visualization can be performed if you have multi-sample, multi-group single-cell data. The absolute minimum of meta data you need to have, are following columns indicating for each cell: the **group**, **sample** and **cell type**. This vignette is for users who want to perform the DE analysis in their own way, but still want to use the muscatWrapper visualizations easily.
  
 As example expression data, we will use data from Puram et al. of the tumor microenvironment in head and neck squamous cell carcinoma (HNSCC) [See @puram_single-cell_2017] [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5196144.svg)](https://doi.org/10.5281/zenodo.5196144).  The groups we have here are tumors scoring high for a partial epithelial-mesenschymal transition (p-EMT) program vs low-scoring tumors.
 
+
 The different steps of the MultiNicheNet analysis are the following:
 
-* 0. Preparation of the analysis: load packages, read in the single-cell expression data, and define the main settings of the muscat analysis
+* 0. Preparation of the analysis: load packages, read in the single-cell expression data, and read in geneset of interest
 
-* 1. Check cell type abundance for the cell types of interest 
+* 1. Prepare muscatWrapper-specific objects needed for visualization
 
-* 2. Perform genome-wide differential expression (DS) analysis
-
-* 3. Downstream analysis of the DS output, including visualization
+* 2. Gene expression visualization
 
 In this vignette, we will demonstrate all these steps in detail.
 
-# Step 0: Preparation of the analysis: load packages, read in the single-cell expression data, and define the main settings of the muscat analysis
+# Step 0: Preparation of the analysis: load packages, read in the single-cell expression data, and read in geneset of interest
 
 IMPORTANT: The current implementation of the muscat wrapper starts from a SingleCellExperiment object, therefore we will need to load the SingleCellExperiment library. If you start from a Seurat object, you can convert it easily to a SingleCellExperiment via `sce = Seurat::as.SingleCellExperiment(seurat_obj, assay = "RNA")`.
 
@@ -69,161 +68,34 @@ __User adaptation required__
 sample_id = "tumor"
 group_id = "pEMT"
 celltype_id = "celltype"
+geneset = c("IL20","IL24","TGFBI") ## user input required!!! eg from DE analysis with another tool
 ```
 
-Now we will go to the first real step of the muscat analysis
-
-# Step 1: Check cell type abundance
-
-## Step 1a: Number of cells per celltype-sample combination
-
-We will now check the number of cells per cell type condition combination, and the number of patients per condition.
-This is important because muscat performs pseudobulking to infer group differences at the sample level for each cell type. This means that we will group the information of all cells of a cell type in a sample together to get 1 sample-celltype estimate. The more cells we have, the more accurate this aggregated expression measure will be.
-
-__User adaptation required__
-```{r}
-table(SummarizedExperiment::colData(sce)$celltype, SummarizedExperiment::colData(sce)$tumor) # cell types vs samples
-table(SummarizedExperiment::colData(sce)$celltype, SummarizedExperiment::colData(sce)$pEMT) # cell types vs conditions
-table(SummarizedExperiment::colData(sce)$tumor, SummarizedExperiment::colData(sce)$pEMT) # samples vs conditions
-```
-
-As you can see in the upper table, some Celltype-Sample combinations have 0 cells. It is possible that during DE analysis, some cell types will be removed from the analysis if there is not enough information to do a DE analysis. (More info later)
-
-We can define the minimum number of cells we require per celltype-sample combination. It is recommened to have at least 10 (and preferably more) cells in each sample-celltype combination. Therefore we will set the `min_cells` parameter in the analysis to 10. Celltype-sample combinations with less cells will not be considered during the muscat DS analysis.
-
-__User adaptation possible__
-```{r}
-min_cells = 10
-```
+# Step 1: Prepare muscatWrapper-specific objects needed for visualization
 
 We will now calculate the cell type abundance table and make the visualizations:
 
 ```{r}
-abundance_output = get_abundance_info(sce, sample_id, group_id, celltype_id, min_cells, covariates = NA)
-head(abundance_output$abundance_data)
+abundance_output = get_abundance_info(sce, sample_id, group_id, celltype_id, min_cells = 10, covariates = NA)
 ```
-
-To visually see which celltype-sample combinations won't be considered, you can run the following code:
-
-```{r, fig.height=8, fig.width=9}
-abundance_output$abund_plot_sample
-```    
-Celltype-sample combinations that won't be considered are indicated in red (because they have less cells than the `min_cells` threshold indicated by the red dashed line)
-
-If too many celltype-sample combinations don't pass this threshold, we recommend to define your cell types in a more general way it this would still be possible and make sense biologically (--> use one level higher of the cell type ontology hierarchy; eg TH17 CD4T cells --> CD4T cells | but not myeloid + T.cell together).
-
-We can see here that quite many sample-celltype combinations are left out. For Endothelial, Myeloid, and T cells, we don't even have two or more samples that have enough cells of those cell types. When we don't have two or more samples per group left, we cannot do a group comparison (we need at least 2 replicates per group for a statistical analysis).
-Therefore, those cell types will be removed before the DE analysis. 
-
-As stated before when seeing this, we would recommend to use a higher-level cell type annotation if possible. But the annotation here is already high-level, and grouping Endothelial cells, T cells and Myeloid cells eg would not make sense biologically. That we won't be able to include these cell types in our analysis is a limitation of the muscat approach compared to classic cell-level-based approaches (like Seurat::FindMarkers). On the contrary, those cell-level-based approaches don't reveal the lack of cells in many samples, and might lead to biased results.
-
-## Step 1b: Differential cell type abundance between the groups of interest
-
-In another visualization, we can compare the cell type abundances between the groups of interest. This can be interesting because too strong abundance differences might have an effect on the DS analysis. Downstream results of these cell types should then be considered with some caution.
-
-```{r, fig.height=7, fig.width=7}
-abundance_output$abund_plot_group
-```        
-Differential abundance looks quite OK for the cell types kept for the DE analysis (i.e. CAF, Malignant and myofibroblast)
-
-We can also look at cell type proportions per sample, and compare this between the different groups
-
-```{r, fig.height=7, fig.width=7}
-abundance_output$abund_barplot
-``` 
-
-### Conclusion of this step:
-__Important__: Based on the cell type abundance diagnostics, we recommend users to change their analysis settings if required, before proceeding with the rest of the analysis.
-
-# Step 2: Perform genome-wide differential expression analysis
-
-Now we will go over to the multi-group, multi-sample differential expression (DE) analysis (also called 'differential state' analysis by the developers of Muscat).
-
-### Define the contrasts and covariates of interest for the DE analysis.
-
-Here, we want to compare the p-EMT-high vs the p-EMT-low group and find cell-cell communication events that are higher in high than low pEMT. We don't have other covariates to correct for in this dataset. If you would have covariates you can correct for, we recommend doing this.
-
-#### about covariates:
-Note that it is only possible to add a covariate if the different covariate categories are present in all your groups of interest as defined in the contrasts. Eg adding the covariate 'sex' is possible if both group 1 and 2 contain male and female samples. It would not be possible if group 2 does not contain male samples for example.
-
-If you have paired data, meaning that you have samples in group 1 (eg steady-state) and group 2 (eg treatment) coming from the same patient, we strongly recommend exploiting this benefit in your experimental design by using the patient id as covariate.
-
-For performing batch/covariate correction, recommend checking following vignette for this! [Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application -- Batch Correction](basic_analysis_batchcor.md):`vignette("basic_analysis_batchcor", package="muscatWrapper")`
-
-
-#### about contrasts and how to set them:
-Note the format to indicate the contrasts! (This formatting should be adhered to very strictly, and white spaces are not allowed)
-
-__User adaptation required__
-```{r}
-covariates = NA
-contrasts_oi = c("'High-Low','Low-High'")
-contrast_tbl = tibble(contrast = 
-                        c("High-Low","Low-High"), 
-                      group = c("High","Low"))
-```
-
-### Perform the DE analysis for each cell type.
 
 ```{r}
-muscat_output = muscat_analysis(
-     sce = sce,
-     celltype_id = celltype_id,
-     sample_id = sample_id,
-     group_id = group_id,
-     covariates = covariates,
-     contrasts_oi = contrasts_oi,
-     contrast_tbl = contrast_tbl)
-
+celltype_info = get_expression_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id = celltype_id, covariates = NA)
 ```
 
-### Check DE results
-
-The `muscat_output` object contains both the default output as given by the `muscat::pbDS()` function, and a cleaner output table (through `muscat::resDS`). It also contains a table with per gene the average expression, the fraction of cells in a celltype expressing it, and the pseudobulk expression: and this grouped per celltype per sample. 
-
-Table with this latter cell type info
-
-```{r}
-# muscat_output$celltype_info %>% lapply(head)
-muscat_output$celltype_info %>% lapply(head)
-```
-
-Table with logFC and p-values for each gene-celltype-contrast:
-
-```{r}
-muscat_output$celltype_de$celltype_de$de_output_tidy %>% arrange(p_adj) %>% head()
-```
-
-We can also show the distribution of the p-values:
-
-```{r, fig.width=9, fig.height=6}
-muscat_output$celltype_de$hist_pvals
-```
-(Note: this p-value histograms are the same for High-Low and Low-High because we only have two groups and compare them to each other - a DE gene in one comparison will then also be DE in the other comparison, with just a reversed sign of the logFC)
-
-In order to trust the p-values, the p-value distributions should be uniform distributions, with a peak allowed between 0 and 0.05 if there would be a clear biological effect in the data. This clear effect (=clear DE) seems to be present here in the Malignant cell type populations, although the histogram is not very uniformly distributed for p-values between 0.05 and 0.25. This might point to issues in the DE model definition. Most common issues occur when we did not add all important covariates to the model, or when there is substructure present: meaning that one of the groups is actually a combination of multiple groups.
- 
-Because there might be some issues, and we anticipate this could be present in other datasets, we could use the empiricall null procedure. Check the other vignette for this! [Multi-sample Multi-condition Differential Expression Analysis via Muscat: HNSCC application -- Empirical Null procedure](basic_analysis_empnull.md):`vignette("basic_analysis_empnull", package="muscatWrapper")`
-
-# Step 3: Downstream analysis and visualization
+# Step 2: Gene expression visualization
 
 Visualize the expression of some DE genes: here as example: genes higher in the pEMT high tumors in the Malignant cell type
 
 ```{r}
 celltype_oi = "Malignant"
 group_oi = "High"
-
-DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
-DE_genes
 ```
-
-(Note 1 : Due to the pseudoubulking, single-cell level information is lost and Muscat can be underpowered. Therefore it is possible that are sometimes no significant DE genes after multiple testing correction. In that case, using less stringent cutoffs is better)
-(Note 2 : If having a few samples per group (<5), it is likely that some DE genes will be driven by an outlier sample. Therefore it is always necessary to visualize the expression of the DE genes in the violin and dotplots shown here)
 
 First, make a violin plot
 
 ```{r, fig.width=14, fig.height=5}
-gene_oi = DE_genes[1]
+gene_oi = geneset[1]
 
 violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi = celltype_oi, group_id = group_id, sample_id = sample_id, celltype_id = celltype_id)
 violin_plot
@@ -231,16 +103,9 @@ violin_plot
 
 Then a Dotplot
 
-```{r, fig.width=7, fig.height=12}
-dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
+```{r, fig.width=5, fig.height=3}
+dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = geneset, celltype_info = celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
 dotplots$pseudobulk_plot 
 dotplots$singlecell_plot
 ```
 
-If wanted: possible to switch the x and y axis of the plot
-
-```{r, fig.width=12, fig.height=5.5}
-dotplots_reversed = make_DEgene_dotplot_pseudobulk_reversed(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
-dotplots_reversed$pseudobulk_plot
-dotplots_reversed$singlecell_plot
-```
