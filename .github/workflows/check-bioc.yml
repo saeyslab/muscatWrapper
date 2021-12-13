@@ -247,8 +247,9 @@ jobs:
       #         `no-check-bioc-help` = TRUE
       #     )
       #   shell: Rscript {0}
-      - name: Upload coverage to Codecov (alternative)
-            uses: codecov/codecov-action@v1
+      # - name: Upload coverage to Codecov (alternative)
+      #   uses: codecov/codecov-action@v1
+
       - name: Test coverage
         # if: github.ref == 'refs/heads/master' && env.run_covr == 'true' && runner.os == 'Linux'
         run: |
