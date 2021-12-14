@@ -32,7 +32,7 @@ The different steps of the MultiNicheNet analysis are the following:
 
 -   1.  Check cell type abundance for the cell types of interest
 
--   2.  Perform genome-wide differential expression (DS) analysis
+-   2.  Perform genome-wide differential expression analysis
 
 -   3.  Downstream analysis of the DS output, including visualization
 
@@ -59,40 +59,38 @@ pEMT status of tumors are ‘pEMT’ and ‘pEMT\_fine’, cell type is
 indicated in the ‘celltype’ column, and the sample is indicated by the
 ‘tumor’ column.
 
-**User adaptation required**
-
 ``` r
 sce = readRDS(url("https://zenodo.org/record/5196144/files/sce_hnscc.rds"))
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "celltype")
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-64-1.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "tumor")
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-64-2.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT")
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-2-3.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-64-3.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT_fine")
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-2-4.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-64-4.png)<!-- -->
 
 Now we will define in which metadata columns we can find the **group**,
 **sample** and **cell type** IDs
 
-For the group\_id, we now choose for the ‘pEMT’ column instead of
-‘pEMT\_fine’, which we will select in a subsequent analysis.
-
-**User adaptation required**
+For the group\_id in this vignette, we first choose the ‘pEMT’ column
+instead of ‘pEMT\_fine’. At the end of the vignette, we choose
+`pEMT_fine` to demonstrate how to perform the analysis with &gt; 2
+groups.
 
 ``` r
 sample_id = "tumor"
@@ -113,8 +111,6 @@ sample level for each cell type. This means that we will group the
 information of all cells of a cell type in a sample together to get 1
 sample-celltype estimate. The more cells we have, the more accurate this
 aggregated expression measure will be.
-
-**User adaptation required**
 
 ``` r
 table(SummarizedExperiment::colData(sce)$celltype, SummarizedExperiment::colData(sce)$tumor) # cell types vs samples
@@ -162,8 +158,6 @@ cells in each sample-celltype combination. Therefore we will set the
 combinations with less cells will not be considered during the muscat DS
 analysis.
 
-**User adaptation possible**
-
 ``` r
 min_cells = 10
 ```
@@ -193,7 +187,8 @@ you can run the following code:
 abundance_output$abund_plot_sample
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-69-1.png)<!-- -->
+
 Celltype-sample combinations that won’t be considered are indicated in
 red (because they have less cells than the `min_cells` threshold
 indicated by the red dashed line)
@@ -206,10 +201,11 @@ CD4T cells \| but not myeloid + T.cell together).
 
 We can see here that quite many sample-celltype combinations are left
 out. For Endothelial, Myeloid, and T cells, we don’t even have two or
-more samples that have enough cells of those cell types. When we don’t
-have two or more samples per group left, we cannot do a group comparison
-(we need at least 2 replicates per group for a statistical analysis).
-Therefore, those cell types will be removed before the DE analysis.
+more samples in each group that have enough cells of those cell types.
+When we don’t have two or more samples per group left, we cannot do a
+group comparison (we need at least 2 replicates per group for a
+statistical analysis). Therefore, those cell types will be removed
+before the DE analysis.
 
 As stated before when seeing this, we would recommend to use a
 higher-level cell type annotation if possible. But the annotation here
@@ -233,7 +229,8 @@ some caution.
 abundance_output$abund_plot_group
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-70-1.png)<!-- -->
+
 Differential abundance looks quite OK for the cell types kept for the DE
 analysis (i.e. CAF, Malignant and myofibroblast)
 
@@ -244,13 +241,13 @@ between the different groups
 abundance_output$abund_barplot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-71-1.png)<!-- -->
 
 ### Conclusion of this step:
 
 **Important**: Based on the cell type abundance diagnostics, we
-recommend users to change their analysis settings if required, before
-proceeding with the rest of the analysis.
+recommend users to change their analysis settings (cell type id, …) if
+required, before proceeding with the rest of the analysis.
 
 # Step 2: Perform genome-wide differential expression analysis
 
@@ -261,9 +258,9 @@ the developers of Muscat).
 ### Define the contrasts and covariates of interest for the DE analysis.
 
 Here, we want to compare the p-EMT-high vs the p-EMT-low group and find
-cell-cell communication events that are higher in high than low pEMT. We
-don’t have other covariates to correct for in this dataset. If you would
-have covariates you can correct for, we recommend doing this.
+genes that are differentially expressed in high vs low pEMT. We don’t
+have other covariates to correct for in this dataset. If you would have
+covariates you can correct for, we recommend doing this.
 
 #### about covariates:
 
@@ -278,17 +275,16 @@ steady-state) and group 2 (eg treatment) coming from the same patient,
 we strongly recommend exploiting this benefit in your experimental
 design by using the patient id as covariate.
 
-For performing batch/covariate correction, recommend checking following
-vignette for this! [Multi-sample Multi-condition Differential Expression
-Analysis via Muscat: HNSCC application – Batch
+For performing batch/covariate correction, we recommend checking
+following vignette for this! [Multi-sample Multi-condition Differential
+Expression Analysis via Muscat: HNSCC application – Batch
 Correction](basic_analysis_batchcor.md):`vignette("basic_analysis_batchcor", package="muscatWrapper")`
 
 #### about contrasts and how to set them:
 
 Note the format to indicate the contrasts! (This formatting should be
-adhered to very strictly, and white spaces are not allowed)
-
-**User adaptation required**
+adhered to very strictly, and white spaces are not allowed – read the
+help page of `muscat_analysis` for more information )
 
 ``` r
 covariates = NA
@@ -325,7 +321,6 @@ pseudobulk expression: and this grouped per celltype per sample.
 Table with this latter cell type info
 
 ``` r
-# muscat_output$celltype_info %>% lapply(head)
 muscat_output$celltype_info %>% lapply(head)
 ## $avg_df
 ## # A tibble: 6 x 4
@@ -429,7 +424,8 @@ We can also show the distribution of the p-values:
 muscat_output$celltype_de$hist_pvals
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
+
 (Note: this p-value histograms are the same for High-Low and Low-High
 because we only have two groups and compare them to each other - a DE
 gene in one comparison will then also be DE in the other comparison,
@@ -464,19 +460,21 @@ group_oi = "High"
 
 DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
 DE_genes
-##  [1] "RAB31"    "AGTRAP"   "CIB1"     "AHNAK2"   "GSDMC"    "ITGB6"    "ITGA3"    "PDLIM7"   "S100A2"   "CA2"      "ACTN1"    "GALNT6"   "ANXA8L1"  "ITGB1"    "KCNK6"    "PLEK2"    "GJB6"     "ATP6V1D"  "RAB38"    "PPIC"     "CSPG4"    "EHD2"    
-## [23] "INHBA"    "GBP3"     "CAV1"     "KRT16"    "MMP1"     "GNAI1"    "IL20"     "SERINC2"  "SLC31A2"  "ANXA8L2"  "GALE"     "SAMD9L"   "LTBP1"    "MT2A"     "CGB8"     "THSD1"    "NDFIP2"   "GPR68"    "RSU1"     "EREG"     "FSTL3"    "GJB2"    
-## [45] "ARPC1B"   "RRAS"     "TUBB6"    "RHOD"     "IL24"     "C19orf33" "PDGFC"    "MMP10"    "IL1RAP"
+##  [1] "RAB31"    "AGTRAP"   "CIB1"     "AHNAK2"   "GSDMC"    "ITGB6"    "ITGA3"    "PDLIM7"   "S100A2"   "CA2"      "ACTN1"    "GALNT6"   "ANXA8L1"  "ITGB1"    "KCNK6"    "PLEK2"   
+## [17] "GJB6"     "ATP6V1D"  "RAB38"    "PPIC"     "CSPG4"    "EHD2"     "INHBA"    "GBP3"     "CAV1"     "KRT16"    "MMP1"     "GNAI1"    "IL20"     "SERINC2"  "SLC31A2"  "ANXA8L2" 
+## [33] "GALE"     "SAMD9L"   "LTBP1"    "MT2A"     "CGB8"     "THSD1"    "NDFIP2"   "GPR68"    "RSU1"     "EREG"     "FSTL3"    "GJB2"     "ARPC1B"   "RRAS"     "TUBB6"    "RHOD"    
+## [49] "IL24"     "C19orf33" "PDGFC"    "MMP10"    "IL1RAP"
 ```
 
 (Note 1 : Due to the pseudoubulking, single-cell level information is
 lost and Muscat can be underpowered. Therefore it is possible that are
 sometimes no significant DE genes after multiple testing correction. In
-that case, using less stringent cutoffs is better) (Note 2 : If having a
-few samples per group (&lt;5), it is likely that some DE genes will be
-driven by an outlier sample. Therefore it is always necessary to
-visualize the expression of the DE genes in the violin and dotplots
-shown here)
+that case, using less stringent cutoffs is better)
+
+(Note 2 : If having a few samples per group (&lt;5), it is likely that
+some DE genes will be driven by an outlier sample. Therefore it is
+always necessary to visualize the expression of the DE genes in the
+violin and dotplots shown here)
 
 First, make a violin plot
 
@@ -487,7 +485,7 @@ violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi 
 violin_plot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-78-1.png)<!-- -->
 
 Then a Dotplot
 
@@ -496,13 +494,13 @@ dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = m
 dotplots$pseudobulk_plot 
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
 
 ``` r
 dotplots$singlecell_plot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-79-2.png)<!-- -->
 
 If wanted: possible to switch the x and y axis of the plot
 
@@ -511,15 +509,161 @@ dotplots_reversed = make_DEgene_dotplot_pseudobulk_reversed(genes_oi = DE_genes,
 dotplots_reversed$pseudobulk_plot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-80-1.png)<!-- -->
 
 ``` r
 dotplots_reversed$singlecell_plot
 ```
 
-![](basic_analysis_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->
+![](basic_analysis_files/figure-gfm/unnamed-chunk-80-2.png)<!-- -->
+
+Now for the CAF celltype
+
+``` r
+celltype_oi = "CAF"
+group_oi = "High"
+
+DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
+DE_genes # no DE genes -- use less stringent cutoff
+## character(0)
+DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_val <= 0.01 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
+DE_genes 
+## [1] "DHCR7"   "PDE4B"   "MSX2"    "SNAP25"  "GLA"     "MIPEPP3" "CXCL1"   "ST7L"    "ZNF211"
+```
+
+``` r
+dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
+dotplots$pseudobulk_plot 
+```
+
+![](basic_analysis_files/figure-gfm/unnamed-chunk-82-1.png)<!-- -->
+
+``` r
+dotplots$singlecell_plot
+```
+
+![](basic_analysis_files/figure-gfm/unnamed-chunk-82-2.png)<!-- -->
 
 If you would prefer applying your own code for the differential
 expression analysis, but still use these visualizations, you can check:
 [muscatWrapper Visualization
 Preparation](vignettes/visualization_preparation.md):`vignette("visualization_preparation", package="muscatWrapper")`
+
+# Differential Expression analysis for comparing more than 2 groups
+
+We will now show an example of how to change the contrast settings in
+case you want differential expression analysis between more than 2
+groups. For this, we will change the group\_id to `pEMT_fine` because
+there we find indications of three groups: High, Medium, Low pEMT
+
+``` r
+group_id = "pEMT_fine"
+SummarizedExperiment::colData(sce)[,group_id] = factor(SummarizedExperiment::colData(sce)[,group_id], levels = c("High","Medium","Low")) ## to have the logical order of High-Medium-Low instead of alphatbetic order
+```
+
+``` r
+abundance_output = get_abundance_info(sce, sample_id, group_id, celltype_id, min_cells, covariates = NA)
+abundance_output$abund_plot_sample
+```
+
+![](basic_analysis_files/figure-gfm/unnamed-chunk-84-1.png)<!-- -->
+
+If we want to compare one group, against the other two, we need to
+define the contrasts in the following way:
+
+``` r
+contrasts_oi = c("'High-(Medium+Low)/2','Medium-(High+Low)/2','Low-(High+Medium)/2'")
+contrast_tbl = tibble(contrast = 
+                        c("High-(Medium+Low)/2","Medium-(High+Low)/2","Low-(High+Medium)/2"), 
+                      group = c("High","Medium","Low"))
+```
+
+### Perform the DE analysis for each cell type.
+
+``` r
+muscat_output = muscat_analysis(
+     sce = sce,
+     celltype_id = celltype_id,
+     sample_id = sample_id,
+     group_id = group_id,
+     covariates = covariates,
+     contrasts_oi = contrasts_oi,
+     contrast_tbl = contrast_tbl)
+## [1] "excluded cell types are:"
+## [1] "Endothelial"   "Myeloid"       "myofibroblast" "T.cell"       
+## [1] "These celltypes are not considered in the analysis. After removing samples that contain less cells than the required minimal, some groups don't have 2 or more samples anymore. As a result the analysis cannot be run. To solve this: decrease the number of min_cells or change your group_id and pool all samples that belong to groups that are not of interest! "
+```
+
+``` r
+muscat_output$celltype_de$hist_pvals
+```
+
+![](basic_analysis_files/figure-gfm/unnamed-chunk-87-1.png)<!-- -->
+
+``` r
+celltype_oi = "Malignant"
+group_oi = "High"
+
+DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
+DE_genes
+## [1] "SLC31A2" "LTBP1"
+```
+
+``` r
+gene_oi = DE_genes[1]
+
+violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi = celltype_oi, group_id = group_id, sample_id = sample_id, celltype_id = celltype_id)
+violin_plot
+```
+
+![](basic_analysis_files/figure-gfm/unnamed-chunk-89-1.png)<!-- -->
+
+``` r
+dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
+dotplots$pseudobulk_plot 
+```
+
+![](basic_analysis_files/figure-gfm/unnamed-chunk-90-1.png)<!-- --> And
+now once the medium genes…
+
+``` r
+celltype_oi = "Malignant"
+group_oi = "Medium"
+
+DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
+DE_genes ## no DE genes --> be less stringent here
+## character(0)
+
+DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_val <= 0.001 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
+DE_genes ## no DE genes --> be less stringent here
+##  [1] "NCCRP1"       "CA2"          "LOC100505865" "KRT16"        "ITGB6"        "INPP4B"       "CSPG4"        "GPR68"        "RAB31"        "GALNT6"       "AHNAK2"       "LHX1"        
+## [13] "APCDD1"       "GSDMC"        "IL20"
+```
+
+``` r
+gene_oi = DE_genes[1]
+
+violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi = celltype_oi, group_id = group_id, sample_id = sample_id, celltype_id = celltype_id)
+violin_plot
+```
+
+![](basic_analysis_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
+
+``` r
+dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
+dotplots$pseudobulk_plot 
+```
+
+![](basic_analysis_files/figure-gfm/unnamed-chunk-93-1.png)<!-- --> \#\#
+References
+
+Crowell, H.L., Soneson, C., Germain, PL. et al. muscat detects
+subpopulation-specific state transitions from multi-sample
+multi-condition single-cell transcriptomics data. Nat Commun 11, 6077
+(2020). <https://doi.org/10.1038/s41467-020-19894-4>
+
+Puram, Sidharth V., Itay Tirosh, Anuraag S. Parikh, Anoop P. Patel,
+Keren Yizhak, Shawn Gillespie, Christopher Rodman, et al. 2017.
+“Single-Cell Transcriptomic Analysis of Primary and Metastatic Tumor
+Ecosystems in Head and Neck Cancer.” Cell 171 (7): 1611–1624.e24.
+<https://doi.org/10.1016/j.cell.2017.10.044>.

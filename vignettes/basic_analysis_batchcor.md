@@ -17,7 +17,7 @@ you need to have, are following columns indicating for each cell: the
 **group**, **sample** and **cell type**.
 
 In addition to these factors, in this vignette we will also perform the
-DE analysis while correcting for covariates/batch effects.
+DE analysis while **correcting for covariates/batch effects**.
 
 As example expression data, we will use data from Puram et al. of the
 tumor microenvironment in head and neck squamous cell carcinoma (HNSCC)
@@ -38,6 +38,8 @@ The different steps of the MultiNicheNet analysis are the following:
 -   2.  Perform genome-wide differential expression (DS) analysis
 
 -   3.  Downstream analysis of the DS output, including visualization
+
+-   4.  Exploring the effect of the batch effect correction
 
 In this vignette, we will demonstrate all these steps in detail.
 
@@ -62,37 +64,35 @@ pEMT status of tumors are ‘pEMT’ and ‘pEMT\_fine’, cell type is
 indicated in the ‘celltype’ column, and the sample is indicated by the
 ‘tumor’ column.
 
-**User adaptation required**
-
 ``` r
 sce = readRDS(url("https://zenodo.org/record/5196144/files/sce_hnscc.rds"))
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "celltype")
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "tumor")
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-79-2.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT")
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-79-3.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-2-3.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT_fine")
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-79-4.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-2-4.png)<!-- -->
 
 We will also look at at a potential covariate/batch effect of interest.
 For this dataset, no batch effect was known. Therefore we will simulate
-one. In the future, we will use another example dataset in this
-vignette.
+a mock batch, just to demosntrate the code. (In the future, we will use
+another example dataset in this vignette.)
 
 ``` r
 set.seed(1919)
@@ -111,15 +111,13 @@ sce = SingleCellExperiment::SingleCellExperiment(list(counts=SingleCellExperimen
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "batch")
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-80-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 Now we will define in which metadata columns we can find the **group**,
-**sample** and **cell type** IDs
+**sample**, **cell type** and **covariates** IDs
 
-For the group\_id, we now choose for the ‘pEMT’ column instead of
-‘pEMT\_fine’, which we will select in a subsequent analysis.
-
-**User adaptation required**
+For the group\_id in this vignette, we choose the ‘pEMT’ column instead
+of ‘pEMT\_fine’.
 
 ``` r
 sample_id = "tumor"
@@ -141,8 +139,6 @@ sample level for each cell type. This means that we will group the
 information of all cells of a cell type in a sample together to get 1
 sample-celltype estimate. The more cells we have, the more accurate this
 aggregated expression measure will be.
-
-**User adaptation required**
 
 ``` r
 table(SummarizedExperiment::colData(sce)$celltype, SummarizedExperiment::colData(sce)$tumor) # cell types vs samples
@@ -203,8 +199,6 @@ cells in each sample-celltype combination. Therefore we will set the
 combinations with less cells will not be considered during the muscat DS
 analysis.
 
-**User adaptation possible**
-
 ``` r
 min_cells = 10
 ```
@@ -234,7 +228,10 @@ you can run the following code:
 abundance_output$abund_plot_sample
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-85-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+Note: each group is here split into its batches as well!
+
 Celltype-sample combinations that won’t be considered are indicated in
 red (because they have less cells than the `min_cells` threshold
 indicated by the red dashed line)
@@ -247,10 +244,11 @@ CD4T cells \| but not myeloid + T.cell together).
 
 We can see here that quite many sample-celltype combinations are left
 out. For Endothelial, Myeloid, and T cells, we don’t even have two or
-more samples that have enough cells of those cell types. When we don’t
-have two or more samples per group left, we cannot do a group comparison
-(we need at least 2 replicates per group for a statistical analysis).
-Therefore, those cell types will be removed before the DE analysis.
+more samples in each group that have enough cells of those cell types.
+When we don’t have two or more samples per group left, we cannot do a
+group comparison (we need at least 2 replicates per group for a
+statistical analysis). Therefore, those cell types will be removed
+before the DE analysis.
 
 As stated before when seeing this, we would recommend to use a
 higher-level cell type annotation if possible. But the annotation here
@@ -274,7 +272,10 @@ some caution.
 abundance_output$abund_plot_group
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-86-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+Note: each group is here split into its batches as well!
+
 Differential abundance looks quite OK for the cell types kept for the DE
 analysis (i.e. CAF, Malignant and myofibroblast)
 
@@ -285,7 +286,9 @@ between the different groups
 abundance_output$abund_barplot
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-87-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+Note: each group is here split into its batches as well!
 
 ### Conclusion of this step:
 
@@ -302,15 +305,14 @@ the developers of Muscat).
 ### Define the contrasts and covariates of interest for the DE analysis.
 
 Here, we want to compare the p-EMT-high vs the p-EMT-low group and find
-cell-cell communication events that are higher in high than low pEMT. We
-will correct for the covariate ‘batch’, as defined here above.
+genes that are differentially expressed in high vs low pEMT. We don’t
+have other covariates to correct for in this dataset. If you would have
+covariates you can correct for, we recommend doing this.
 
 #### about contrasts and how to set them:
 
 Note the format to indicate the contrasts! (This formatting should be
 adhered to very strictly, and white spaces are not allowed)
-
-**User adaptation required**
 
 ``` r
 contrasts_oi = c("'High-Low','Low-High'")
@@ -454,7 +456,8 @@ We can also show the distribution of the p-values:
 muscat_output$celltype_de$hist_pvals
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-92-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
 (Note: this p-value histograms are the same for High-Low and Low-High
 because we only have two groups and compare them to each other - a DE
 gene in one comparison will then also be DE in the other comparison,
@@ -490,11 +493,12 @@ DE_genes
 (Note 1 : Due to the pseudoubulking, single-cell level information is
 lost and Muscat can be underpowered. Therefore it is possible that are
 sometimes no significant DE genes after multiple testing correction. In
-that case, using less stringent cutoffs is better) (Note 2 : If having a
-few samples per group (&lt;5), it is likely that some DE genes will be
-driven by an outlier sample. Therefore it is always necessary to
-visualize the expression of the DE genes in the violin and dotplots
-shown here)
+that case, using less stringent cutoffs is better)
+
+(Note 2 : If having a few samples per group (&lt;5), it is likely that
+some DE genes will be driven by an outlier sample. Therefore it is
+always necessary to visualize the expression of the DE genes in the
+violin and dotplots shown here)
 
 First, make a violin plot
 
@@ -505,7 +509,7 @@ violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi 
 violin_plot
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-94-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 Then a Dotplot
 
@@ -514,13 +518,13 @@ dotplots = make_DEgene_dotplot_pseudobulk_covariate(genes_oi = DE_genes, celltyp
 dotplots$pseudobulk_plot 
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-95-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
 ``` r
 dotplots$singlecell_plot
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-95-2.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->
 
 # Step 4: Exploring the effect of the batch effect correction
 
@@ -714,7 +718,7 @@ dotplots_topA = make_DEgene_dotplot_pseudobulk_covariate(genes_oi = top_A_genes,
 dotplots_topA$pseudobulk_plot 
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-104-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 As can be expected if we show non-corrected values, higher expression of
 topA genes in A-samples can be observed. The same is true for the B
@@ -725,7 +729,7 @@ dotplots_topB = make_DEgene_dotplot_pseudobulk_covariate(genes_oi = top_B_genes,
 dotplots_topB$pseudobulk_plot 
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-105-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
 Now: visualize the expression of the genes that are more clearly DE
 (high in pEMT-high group) without correction than with
@@ -735,7 +739,7 @@ dotplots_DE_without_cor = make_DEgene_dotplot_pseudobulk_covariate(genes_oi = DE
 dotplots_DE_without_cor$pseudobulk_plot 
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-106-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
 ### Show expression of these top-batch-effect-correction effected genes: with **corrected** pseudobulkexpression values (default plot of muscatWrapper)
 
@@ -744,7 +748,7 @@ dotplots_topA = make_DEgene_dotplot_pseudobulk_covariate(genes_oi = top_A_genes,
 dotplots_topA$pseudobulk_plot 
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-107-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 In the original expression space, these genes have clearly higher
 expression in batch A samples. However, we can see that after batch
@@ -758,7 +762,7 @@ dotplots_topB = make_DEgene_dotplot_pseudobulk_covariate(genes_oi = top_B_genes,
 dotplots_topB$pseudobulk_plot 
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-108-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 Now: visualize the expression of the genes that are more clearly DE
 (high in pEMT-high group) without correction than with
@@ -768,7 +772,20 @@ dotplots_DE_without_cor = make_DEgene_dotplot_pseudobulk_covariate(genes_oi = DE
 dotplots_DE_without_cor$pseudobulk_plot 
 ```
 
-![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-109-1.png)<!-- -->
+![](basic_analysis_batchcor_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
 
 In contrast to the visualization without correction, these genes are
 less clearly higher in the p-EMT group
+
+## References
+
+Crowell, H.L., Soneson, C., Germain, PL. et al. muscat detects
+subpopulation-specific state transitions from multi-sample
+multi-condition single-cell transcriptomics data. Nat Commun 11, 6077
+(2020). <https://doi.org/10.1038/s41467-020-19894-4>
+
+Puram, Sidharth V., Itay Tirosh, Anuraag S. Parikh, Anoop P. Patel,
+Keren Yizhak, Shawn Gillespie, Christopher Rodman, et al. 2017.
+“Single-Cell Transcriptomic Analysis of Primary and Metastatic Tumor
+Ecosystems in Head and Neck Cancer.” Cell 171 (7): 1611–1624.e24.
+<https://doi.org/10.1016/j.cell.2017.10.044>.

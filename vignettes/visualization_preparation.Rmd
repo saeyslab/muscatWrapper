@@ -61,7 +61,9 @@ scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT_fine")
 
 Now we will define in which metadata columns we can find the **group**, **sample** and **cell type** IDs
 
-For the group_id, we now choose for the 'pEMT' column instead of 'pEMT_fine', which we will select in a subsequent analysis.
+For the group_id in this vignette, we choose the 'pEMT' column instead of 'pEMT_fine'.
+
+Because DE analysis is here done with another tool than muscatWrapper, the **list of genes** to visualize should be given here as well
 
 __User adaptation required__
 ```{r}
@@ -108,4 +110,7 @@ dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = geneset, celltype_info = ce
 dotplots$pseudobulk_plot 
 dotplots$singlecell_plot
 ```
+## References
+
+Puram, Sidharth V., Itay Tirosh, Anuraag S. Parikh, Anoop P. Patel, Keren Yizhak, Shawn Gillespie, Christopher Rodman, et al. 2017. “Single-Cell Transcriptomic Analysis of Primary and Metastatic Tumor Ecosystems in Head and Neck Cancer.” Cell 171 (7): 1611–1624.e24. https://doi.org/10.1016/j.cell.2017.10.044.
 

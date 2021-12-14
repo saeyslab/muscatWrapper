@@ -63,31 +63,34 @@ sce = readRDS(url("https://zenodo.org/record/5196144/files/sce_hnscc.rds"))
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "celltype")
 ```
 
-![](visualization_preparation_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](visualization_preparation_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "tumor")
 ```
 
-![](visualization_preparation_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
+![](visualization_preparation_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT")
 ```
 
-![](visualization_preparation_files/figure-gfm/unnamed-chunk-12-3.png)<!-- -->
+![](visualization_preparation_files/figure-gfm/unnamed-chunk-2-3.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT_fine")
 ```
 
-![](visualization_preparation_files/figure-gfm/unnamed-chunk-12-4.png)<!-- -->
+![](visualization_preparation_files/figure-gfm/unnamed-chunk-2-4.png)<!-- -->
 
 Now we will define in which metadata columns we can find the **group**,
 **sample** and **cell type** IDs
 
-For the group\_id, we now choose for the ‘pEMT’ column instead of
-‘pEMT\_fine’, which we will select in a subsequent analysis.
+For the group\_id in this vignette, we choose the ‘pEMT’ column instead
+of ‘pEMT\_fine’.
+
+Because DE analysis is here done with another tool than muscatWrapper,
+the **list of genes** to visualize should be given here as well
 
 **User adaptation required**
 
@@ -130,7 +133,7 @@ violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi 
 violin_plot
 ```
 
-![](visualization_preparation_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](visualization_preparation_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 Then a Dotplot
 
@@ -139,10 +142,17 @@ dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = geneset, celltype_info = ce
 dotplots$pseudobulk_plot 
 ```
 
-![](visualization_preparation_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](visualization_preparation_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 dotplots$singlecell_plot
 ```
 
-![](visualization_preparation_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->
+![](visualization_preparation_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
+\#\# References
+
+Puram, Sidharth V., Itay Tirosh, Anuraag S. Parikh, Anoop P. Patel,
+Keren Yizhak, Shawn Gillespie, Christopher Rodman, et al. 2017.
+“Single-Cell Transcriptomic Analysis of Primary and Metastatic Tumor
+Ecosystems in Head and Neck Cancer.” Cell 171 (7): 1611–1624.e24.
+<https://doi.org/10.1016/j.cell.2017.10.044>.
