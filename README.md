@@ -61,19 +61,19 @@ multi-condition DE analysis with muscatWrapper:
     Muscat: HNSCC application](vignettes/basic_analysis.md):
     `vignette("basic_analysis", package="muscatWrapper")`
 
+In case you have a batch effect or covariates you want to correct for
+during the DE analysis and visualization, check:
+
+-   [Multi-sample Multi-condition Differential Expression Analysis via
+    Muscat: HNSCC application – Batch
+    Correction](vignettes/basic_analysis_batchcor.md):`vignette("basic_analysis_batchcor", package="muscatWrapper")`
+
 For a detailed statistical analysis and interpretation of DE p-values,
 and the use of the empiricall null procedure, check:
 
 -   [Multi-sample Multi-condition Differential Expression Analysis via
     Muscat: HNSCC application – Empirical Null
     procedure](vignettes/basic_analysis_empnull.md):`vignette("basic_analysis_empnull", package="muscatWrapper")`
-
-For a detailed statistical analysis and interpretation of DE p-values,
-and the use of the empiricall null procedure, check:
-
--   [Multi-sample Multi-condition Differential Expression Analysis via
-    Muscat: HNSCC application – Batch
-    Correction](vignettes/basic_analysis_batchcor.md):`vignette("basic_analysis_batchcor", package="muscatWrapper")`
 
 If you would want to use other code for the multi-sample,
 multi-condition DE analysis (e.g. with the original muscat code,
