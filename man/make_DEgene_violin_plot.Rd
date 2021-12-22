@@ -32,27 +32,22 @@ ggplot object: Violin plot of a gene gene of interest: per sample, and samples a
 \examples{
 \dontrun{
 library(dplyr)
-lr_network = readRDS(url("https://zenodo.org/record/3260758/files/lr_network.rds"))
-lr_network = lr_network \%>\% dplyr::rename(ligand = from, receptor = to) \%>\% dplyr::distinct(ligand, receptor)
-ligand_gene_matrix = readRDS(url("https://zenodo.org/record/3260758/files/ligand_gene_matrix.rds"))
 sample_id = "tumor"
 group_id = "pEMT"
 celltype_id = "celltype"
 covariates = NA
 contrasts_oi = c("'High-Low','Low-High'")
 contrast_tbl = tibble(contrast = c("High-Low","Low-High"), group = c("High","Low"))
-output = multi_nichenet_analysis(
+min_cells = 10
+abundance_output = get_abundance_info(sce, sample_id, group_id, celltype_id, min_cells, covariates = NA)
+muscat_output = muscat_analysis(
      sce = sce,
      celltype_id = celltype_id,
      sample_id = sample_id,
      group_id = group_id,
      covariates = covariates,
-     lr_network = lr_network,
-     ligand_gene_matrix = ligand_gene_matrix,
      contrasts_oi = contrasts_oi,
-     contrast_tbl = contrast_tbl,
-     sender_celltype_separate = FALSE
-     )
+     contrast_tbl = contrast_tbl)
 celltype_oi = "Malignant"
 group_oi = "High"
 gene_oi = "RAB31"

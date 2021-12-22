@@ -293,6 +293,10 @@ test_that("Empirical null procedure works", {
   violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi = celltype_oi, group_id = group_id, sample_id = sample_id, celltype_id = celltype_id, covariate_oi = covariates)
   expect_true("ggplot" %in% class(violin_plot))
 
+  colnames(SummarizedExperiment::colData(sce))[colnames(SummarizedExperiment::colData(sce)) == "cell"] = "cell_id"
+  violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi = celltype_oi, group_id = group_id, sample_id = sample_id, celltype_id = celltype_id, covariate_oi = covariates)
+  expect_true("ggplot" %in% class(violin_plot))
+
   DE_table = filter(DE_info_emp$de_output_tidy_emp,
                     cluster_id == celltype_oi &
                     p_emp <= 0.05 & logFC >= 1 & contrast == "High-Low")

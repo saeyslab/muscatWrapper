@@ -299,27 +299,22 @@ make_DEgene_dotplot_pseudobulk_reversed = function(genes_oi, celltype_info, abun
 #' @examples
 #' \dontrun{
 #' library(dplyr)
-#' lr_network = readRDS(url("https://zenodo.org/record/3260758/files/lr_network.rds"))
-#' lr_network = lr_network %>% dplyr::rename(ligand = from, receptor = to) %>% dplyr::distinct(ligand, receptor)
-#' ligand_gene_matrix = readRDS(url("https://zenodo.org/record/3260758/files/ligand_gene_matrix.rds"))
 #' sample_id = "tumor"
 #' group_id = "pEMT"
 #' celltype_id = "celltype"
 #' covariates = NA
 #' contrasts_oi = c("'High-Low','Low-High'")
 #' contrast_tbl = tibble(contrast = c("High-Low","Low-High"), group = c("High","Low"))
-#' output = multi_nichenet_analysis(
+#' min_cells = 10
+#' abundance_output = get_abundance_info(sce, sample_id, group_id, celltype_id, min_cells, covariates = NA)
+#' muscat_output = muscat_analysis(
 #'      sce = sce,
 #'      celltype_id = celltype_id,
 #'      sample_id = sample_id,
 #'      group_id = group_id,
 #'      covariates = covariates,
-#'      lr_network = lr_network,
-#'      ligand_gene_matrix = ligand_gene_matrix,
 #'      contrasts_oi = contrasts_oi,
-#'      contrast_tbl = contrast_tbl,
-#'      sender_celltype_separate = FALSE
-#'      )
+#'      contrast_tbl = contrast_tbl)
 #' celltype_oi = "Malignant"
 #' group_oi = "High"
 #' gene_oi = "RAB31"
@@ -345,7 +340,12 @@ make_DEgene_violin_plot = function(sce, gene_oi, celltype_oi, group_id, sample_i
                                sid = "id",   # sample IDs (ctrl/stim.1234)
                                drop = FALSE)  #
 
-  exprs_df = tibble::tibble(expression = SingleCellExperiment::logcounts(sce_subset)[gene_oi,], cell = names(SingleCellExperiment::logcounts(sce_subset)[gene_oi,])) %>% dplyr::inner_join(SummarizedExperiment::colData(sce_subset) %>% tibble::as_tibble())
+  coldata_df = SummarizedExperiment::colData(sce_subset)
+  if(! "cell" %in% colnames(coldata_df)){
+    coldata_df = coldata_df %>% data.frame() %>% tibble::rownames_to_column("cell")
+  }
+
+  exprs_df = tibble::tibble(expression = SingleCellExperiment::logcounts(sce_subset)[gene_oi,], cell = names(SingleCellExperiment::logcounts(sce_subset)[gene_oi,])) %>% dplyr::inner_join(coldata_df %>% tibble::as_tibble() )
 
   if(is.na(covariate_oi)){
     p_violin = exprs_df %>% ggplot(aes(sample_id, expression, group = sample_id, color = group_id)) + geom_violin(color = "grey10") + ggbeeswarm::geom_quasirandom(bandwidth = 1.25, varwidth = TRUE, groupOnX = TRUE)  +
