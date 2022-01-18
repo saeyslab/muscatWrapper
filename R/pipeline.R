@@ -9,13 +9,13 @@
 #' @param group_id Name of the meta data column that indicates from which group/condition a cell comes from (in sce)
 #' @param covariates NA if no covariates should be corrected for. If there should be corrected for covariates, this argument should be the name(s) of the columns in the meta data that indicate the covariate(s).
 #' @param contrasts_oi String indicating the contrasts of interest (= which groups/conditions will be compared) for the differential expression and MultiNicheNet analysis.
-#' We will demonstrate here a few examples to indicate how to write this. Check the limma package manuals for more information about defining design matrices and contrasts for differential expression analysis.
-#' If wanting to compare group A vs B: `contrasts_oi = c("'A-B'")`
-#' If wanting to compare group A vs B & B vs A: `contrasts_oi = c("'A-B','B-A'")`
-#' If wanting to compare group A vs B & A vs C & A vs D: `contrasts_oi = c("'A-B','A-C', 'A-D'")`
-#' If wanting to compare group A vs B and C: `contrasts_oi = c("'A-(B+C)/2'")`
-#' If wanting to compare group A vs B, C and D: `contrasts_oi = c("'A-(B+C+D)/3'")`
-#' If wanting to compare group A vs B, C and D & B vs A,C,D: `contrasts_oi = c("'A-(B+C+D)/3', 'B-(A+C+D)/3'")`
+#' We will demonstrate here a few examples to indicate how to write this. Check the limma package manuals for more information about defining design matrices and contrasts for differential expression analysis.\cr
+#' If wanting to compare group A vs B: `contrasts_oi = c("'A-B'")` \cr
+#' If wanting to compare group A vs B & B vs A: `contrasts_oi = c("'A-B','B-A'")` \cr
+#' If wanting to compare group A vs B & A vs C & A vs D: `contrasts_oi = c("'A-B','A-C', 'A-D'")` \cr
+#' If wanting to compare group A vs B and C: `contrasts_oi = c("'A-(B+C)/2'")` \cr
+#' If wanting to compare group A vs B, C and D: `contrasts_oi = c("'A-(B+C+D)/3'")` \cr
+#' If wanting to compare group A vs B, C and D & B vs A,C,D: `contrasts_oi = c("'A-(B+C+D)/3', 'B-(A+C+D)/3'")` \cr
 #' Note that the groups A, B, ... should be present in the meta data column 'group_id'.
 #' @param contrast_tbl Data frame providing names for each of the contrasts in contrasts_oi in the 'contrast' column, and the corresponding group of interest in the 'group' column. Entries in the 'group' column should thus be present in the group_id column in the metadata.
 #' Example for `contrasts_oi = c("'A-(B+C+D)/3', 'B-(A+C+D)/3'")`:
@@ -28,10 +28,10 @@
 #' @param min_cells Indicates the minimal number of cells that a sample should have to be considered in the DE analysis. Default: 10. See `muscat::pbDS`.
 #' @param verbose Indicate which different steps of the pipeline are running or not. Default: FALSE.
 #'
-#' @return List containing information and output of the Muscat analysis.
-#' celltype_info: contains average expression value and fraction of each cell type - sample combination,
-#' celltype_de: contains output of the differential expression analysis,
-#' grouping_tbl: data frame showing the group per sample
+#' @return List containing information and output of the Muscat analysis.\cr
+#' celltype_info: contains average expression value and fraction of each cell type - sample combination,\cr
+#' celltype_de: contains output of the differential expression analysis,\cr
+#' grouping_tbl: data frame showing the group per sample \cr
 #'
 #' @import dplyr
 #' @import ggplot2
