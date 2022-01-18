@@ -211,7 +211,7 @@ muscat_analysis = function(sce, celltype_id,
 
   ### celltype abundance plots + Calculate expression information
   if(verbose == TRUE){
-    print("Make diagnostic abundance plots + Calculate expression information")
+    print("Calculate expression information")
   }
 
   expression_info = get_expression_info(sce = sce, sample_id = sample_id, group_id = group_id, celltype_id = celltype_id, covariates = covariates)
