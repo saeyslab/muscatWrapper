@@ -183,13 +183,14 @@ perform_muscat_de_analysis = function(sce, sample_id, celltype_id, group_id, cov
   }
 
   if(covariates_present){
-    extra_metadata = SummarizedExperiment::colData(sce)  %>% tibble::as_tibble() %>% dplyr::select(all_of(sample_id), all_of(covariates)) %>% dplyr::distinct() %>% dplyr::mutate_all(factor)
+    extra_metadata = SummarizedExperiment::colData(sce)  %>% tibble::as_tibble() %>% dplyr::select(all_of(sample_id), all_of(covariates)) %>% dplyr::distinct() #%>% dplyr::mutate_all(factor)
   } else {
-    extra_metadata = SummarizedExperiment::colData(sce) %>% tibble::as_tibble() %>% dplyr::select(all_of(sample_id)) %>% dplyr::distinct() %>% dplyr::mutate_all(factor)
+    extra_metadata = SummarizedExperiment::colData(sce) %>% tibble::as_tibble() %>% dplyr::select(all_of(sample_id)) %>% dplyr::distinct() #%>% dplyr::mutate_all(factor)
   }
   if('sample_id' != sample_id){
     extra_metadata$sample_id = extra_metadata[[sample_id]]
   }
+  extra_metadata = extra_metadata %>% dplyr::mutate(sample_id = factor(sample_id))
   ei = S4Vectors::metadata(sce)$experiment_info
 
   ei = ei %>%  dplyr::inner_join(extra_metadata, by = "sample_id")

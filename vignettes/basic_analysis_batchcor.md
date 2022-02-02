@@ -485,9 +485,8 @@ group_oi = "High"
 
 DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
 DE_genes
-##  [1] "CIB1"    "RAB31"   "AGTRAP"  "GSDMC"   "AHNAK2"  "ITGA3"   "ANXA8L1" "ITGB6"   "S100A2"  "GPR68"   "ITGB1"   "KRT16"   "GALNT6"  "INHBA"   "ACTN1"   "PDLIM7"  "CA2"     "KCNK6"  
-## [19] "PLEK2"   "GBP3"    "ANXA8L2" "PDGFC"   "SAMD9L"  "MT1L"    "SLC31A2" "IL20RB"  "SERINC2" "ATP6V1D" "CSPG4"   "RAB38"   "GJB6"    "THSD1"   "EREG"    "EHD2"    "COL17A1" "CAV1"   
-## [37] "IL20"    "MMP1"    "LTBP1"   "GALE"    "GNAI1"
+##  [1] "CIB1"    "RAB31"   "AGTRAP"  "GSDMC"   "AHNAK2"  "ITGA3"   "ANXA8L1" "ITGB6"   "S100A2"  "GPR68"   "ITGB1"   "KRT16"   "GALNT6"  "INHBA"   "ACTN1"   "PDLIM7"  "CA2"     "KCNK6"   "PLEK2"   "GBP3"    "ANXA8L2" "PDGFC"   "SAMD9L" 
+## [24] "MT1L"    "SLC31A2" "IL20RB"  "SERINC2" "ATP6V1D" "CSPG4"   "RAB38"   "GJB6"    "THSD1"   "EREG"    "EHD2"    "COL17A1" "CAV1"    "IL20"    "MMP1"    "LTBP1"   "GALE"    "GNAI1"
 ```
 
 (Note 1 : Due to the pseudoubulking, single-cell level information is
@@ -530,7 +529,7 @@ dotplots$singlecell_plot
 
 ## Run the analysis without batch effect correction
 
-This is needed to compare the results with the bach-effect-correction
+This is needed to compare the results with the batch-effect-correction
 analysis performed before in this vignette
 
 ``` r

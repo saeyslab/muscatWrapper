@@ -107,7 +107,7 @@ make_DEgene_dotplot_pseudobulk = function(genes_oi, celltype_info, abundance_dat
 
   p1 = p1 + custom_scale_fill
 
-  ####  make the plot that indicates whether a celltype was sufficiently present in a sample ####
+  ####  make the plot that indicates fraction of expression ####
 
   frq_df =  celltype_info$frq_df %>% dplyr::filter(gene %in% genes_oi & celltype %in% celltype_oi)
   plot_data = plot_data %>% dplyr::inner_join(frq_df, by = c("gene", "sample", "celltype"))
