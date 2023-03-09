@@ -17,7 +17,7 @@ make_DEgene_dotplot_pseudobulk_covariate(genes_oi, celltype_info, abundance_data
 
 \item{covariate_oi}{Name of the covariate/batch that needs to be visualized for each sample}
 
-\item{groups_oi}{Which groups to show? Default: NA -- will show all groups.}
+\item{groups_oi}{Which groups to show? Default: NULL -- will show all groups.}
 }
 \value{
 Gene expression dotplot list: pseudobulk version and single-cell version

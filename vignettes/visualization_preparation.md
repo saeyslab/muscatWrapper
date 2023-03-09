@@ -18,7 +18,7 @@ muscatWrapper visualizations easily.
 
 As example expression data, we will use data from Puram et al. of the
 tumor microenvironment in head and neck squamous cell carcinoma (HNSCC)
-\[See @puram\_single-cell\_2017\]
+\[See @puram_single-cell_2017\]
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5196144.svg)](https://doi.org/10.5281/zenodo.5196144).
 The groups we have here are tumors scoring high for a partial
 epithelial-mesenschymal transition (p-EMT) program vs low-scoring
@@ -26,12 +26,12 @@ tumors.
 
 The different steps of the MultiNicheNet analysis are the following:
 
--   0.  Preparation of the analysis: load packages, read in the
-        single-cell expression data, and read in geneset of interest
+- 0.  Preparation of the analysis: load packages, read in the
+      single-cell expression data, and read in geneset of interest
 
--   1.  Prepare muscatWrapper-specific objects needed for visualization
+- 1.  Prepare muscatWrapper-specific objects needed for visualization
 
--   2.  Gene expression visualization
+- 2.  Gene expression visualization
 
 In this vignette, we will demonstrate all these steps in detail.
 
@@ -52,9 +52,9 @@ library(muscatWrapper)
 
 In this case study, we want to study differences in expression between
 pEMT-high and pEMT-low tumors. The meta data columns that indicate the
-pEMT status of tumors are ‘pEMT’ and ‘pEMT\_fine’, cell type is
-indicated in the ‘celltype’ column, and the sample is indicated by the
-‘tumor’ column.
+pEMT status of tumors are ‘pEMT’ and ‘pEMT_fine’, cell type is indicated
+in the ‘celltype’ column, and the sample is indicated by the ‘tumor’
+column.
 
 **User adaptation required**
 
@@ -86,8 +86,8 @@ scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT_fine")
 Now we will define in which metadata columns we can find the **group**,
 **sample** and **cell type** IDs
 
-For the group\_id in this vignette, we choose the ‘pEMT’ column instead
-of ‘pEMT\_fine’.
+For the group_id in this vignette, we choose the ‘pEMT’ column instead
+of ‘pEMT_fine’.
 
 Because DE analysis is here done with another tool than muscatWrapper,
 the **list of genes** to visualize should be given here as well
@@ -149,7 +149,7 @@ dotplots$singlecell_plot
 ```
 
 ![](visualization_preparation_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
-\#\# References
+\## References
 
 Puram, Sidharth V., Itay Tirosh, Anuraag S. Parikh, Anoop P. Patel,
 Keren Yizhak, Shawn Gillespie, Christopher Rodman, et al. 2017.

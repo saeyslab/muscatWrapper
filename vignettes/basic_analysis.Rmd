@@ -328,6 +328,8 @@ violin_plot
 ```{r, fig.width=5, fig.height=4}
 dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi)
 dotplots$pseudobulk_plot 
+dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = muscat_output$celltype_info, abundance_data = abundance_output$abundance_data, celltype_oi = celltype_oi, groups_oi = c("High","Low"))
+dotplots$pseudobulk_plot 
 ```
 And now once the medium genes...
 

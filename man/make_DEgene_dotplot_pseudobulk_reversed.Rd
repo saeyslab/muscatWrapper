@@ -15,7 +15,7 @@ make_DEgene_dotplot_pseudobulk_reversed(genes_oi, celltype_info, abundance_data,
 
 \item{celltype_oi}{Character vector with names of celltype of interest}
 
-\item{groups_oi}{Which groups to show? Default: NA -- will show all groups.}
+\item{groups_oi}{Which groups to show? Default: NULL -- will show all groups.}
 }
 \value{
 Gene expression dotplot list: pseudobulk version and single-cell version

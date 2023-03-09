@@ -18,7 +18,7 @@ you need to have, are following columns indicating for each cell: the
 
 As example expression data, we will use data from Puram et al. of the
 tumor microenvironment in head and neck squamous cell carcinoma (HNSCC)
-\[See @puram\_single-cell\_2017\]
+\[See @puram_single-cell_2017\]
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5196144.svg)](https://doi.org/10.5281/zenodo.5196144).
 The groups we have here are tumors scoring high for a partial
 epithelial-mesenschymal transition (p-EMT) program vs low-scoring
@@ -26,15 +26,15 @@ tumors.
 
 The different steps of the MultiNicheNet analysis are the following:
 
--   0.  Preparation of the analysis: load packages, read in the
-        single-cell expression data, and define the main settings of the
-        muscat analysis
+- 0.  Preparation of the analysis: load packages, read in the
+      single-cell expression data, and define the main settings of the
+      muscat analysis
 
--   1.  Check cell type abundance for the cell types of interest
+- 1.  Check cell type abundance for the cell types of interest
 
--   2.  Perform genome-wide differential expression (DS) analysis
+- 2.  Perform genome-wide differential expression (DS) analysis
 
--   3.  Downstream analysis of the DS output, including visualization
+- 3.  Downstream analysis of the DS output, including visualization
 
 In this vignette, we will demonstrate all these steps in detail.
 
@@ -55,40 +55,40 @@ library(muscatWrapper)
 
 In this case study, we want to study differences in expression between
 pEMT-high and pEMT-low tumors. The meta data columns that indicate the
-pEMT status of tumors are ‘pEMT’ and ‘pEMT\_fine’, cell type is
-indicated in the ‘celltype’ column, and the sample is indicated by the
-‘tumor’ column.
+pEMT status of tumors are ‘pEMT’ and ‘pEMT_fine’, cell type is indicated
+in the ‘celltype’ column, and the sample is indicated by the ‘tumor’
+column.
 
 ``` r
 sce = readRDS(url("https://zenodo.org/record/5196144/files/sce_hnscc.rds"))
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "celltype")
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "tumor")
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-30-2.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT")
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-30-3.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-2-3.png)<!-- -->
 
 ``` r
 scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "pEMT_fine")
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-30-4.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-2-4.png)<!-- -->
 
 Now we will define in which metadata columns we can find the **group**,
 **sample** and **cell type** IDs
 
-For the group\_id in this vignette, we choose the ‘pEMT’ column instead
-of ‘pEMT\_fine’.
+For the group_id in this vignette, we choose the ‘pEMT’ column instead
+of ‘pEMT_fine’.
 
 ``` r
 sample_id = "tumor"
@@ -185,7 +185,7 @@ you can run the following code:
 abundance_output$abund_plot_sample
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 Celltype-sample combinations that won’t be considered are indicated in
 red (because they have less cells than the `min_cells` threshold
@@ -193,9 +193,9 @@ indicated by the red dashed line)
 
 If too many celltype-sample combinations don’t pass this threshold, we
 recommend to define your cell types in a more general way it this would
-still be possible and make sense biologically (–&gt; use one level
-higher of the cell type ontology hierarchy; eg TH17 CD4T cells –&gt;
-CD4T cells \| but not myeloid + T.cell together).
+still be possible and make sense biologically (–\> use one level higher
+of the cell type ontology hierarchy; eg TH17 CD4T cells –\> CD4T cells
+\| but not myeloid + T.cell together).
 
 We can see here that quite many sample-celltype combinations are left
 out. For Endothelial, Myeloid, and T cells, we don’t even have two or
@@ -227,7 +227,7 @@ some caution.
 abundance_output$abund_plot_group
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 Differential abundance looks quite OK for the cell types kept for the DE
 analysis (i.e. CAF, Malignant and myofibroblast)
@@ -239,7 +239,7 @@ between the different groups
 abundance_output$abund_barplot
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ### Conclusion of this step:
 
@@ -417,7 +417,7 @@ We can also show the distribution of the p-values:
 muscat_output$celltype_de$hist_pvals
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 (Note: this p-value histograms are the same for High-Low and Low-High
 because we only have two groups and compare them to each other - a DE
@@ -470,7 +470,7 @@ p-values:
 DE_info_emp$hist_pvals_emp
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 The following plots show how well the correction worked. The green
 fitted curve should fit well with the histogram. If not, this might
@@ -481,32 +481,32 @@ DE_info_emp$z_distr_plots_emp_pval
 ## $`CAF.High-Low`
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
     ## 
     ## $`CAF.Low-High`
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-46-2.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->
 
     ## 
     ## $`Malignant.High-Low`
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-46-3.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-18-3.png)<!-- -->
 
     ## 
     ## $`Malignant.Low-High`
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-46-4.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-18-4.png)<!-- -->
 
     ## 
     ## $`myofibroblast.High-Low`
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-46-5.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-18-5.png)<!-- -->
 
     ## 
     ## $`myofibroblast.Low-High`
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-46-6.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-18-6.png)<!-- -->
 
 In general, these plots looks fine, except for the Malignant cells. As
 discussed in the previous plots: there might be an issue here. One
@@ -553,36 +553,36 @@ comparison_plots
 ## [[1]][[1]]
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
     ## 
     ## [[1]][[2]]
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-47-2.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->
 
     ## 
     ## 
     ## [[2]]
     ## [[2]][[1]]
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-47-3.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-19-3.png)<!-- -->
 
     ## 
     ## [[2]][[2]]
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-47-4.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-19-4.png)<!-- -->
 
     ## 
     ## 
     ## [[3]]
     ## [[3]][[1]]
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-47-5.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-19-5.png)<!-- -->
 
     ## 
     ## [[3]][[2]]
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-47-6.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-19-6.png)<!-- -->
 
 ### Conclusion of the diagnostic plots concerning the DE analysis
 
@@ -615,7 +615,7 @@ lost and Muscat can be underpowered. Therefore it is possible that are
 sometimes no significant DE genes after multiple testing correction. In
 that case, using less stringent cutoffs is better)
 
-(Note 2 : If having a few samples per group (&lt;5), it is likely that
+(Note 2 : If having a few samples per group (\<5), it is likely that
 some DE genes will be driven by an outlier sample. Therefore it is
 always necessary to visualize the expression of the DE genes in the
 violin and dotplots shown here)
@@ -629,7 +629,7 @@ violin_plot = make_DEgene_violin_plot(sce = sce, gene_oi = gene_oi, celltype_oi 
 violin_plot
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-49-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 Then a Dotplot
 
@@ -638,13 +638,13 @@ dotplots = make_DEgene_dotplot_pseudobulk(genes_oi = DE_genes, celltype_info = m
 dotplots$pseudobulk_plot 
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-50-1.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
 
 ``` r
 dotplots$singlecell_plot
 ```
 
-![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-50-2.png)<!-- -->
+![](basic_analysis_empnull_files/figure-gfm/unnamed-chunk-22-2.png)<!-- -->
 
 ## References
 

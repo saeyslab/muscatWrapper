@@ -21,7 +21,7 @@ scaling_zscore = function (x)
 #' @param celltype_info `celltype_info` slot of the output of the `muscat_analysis()` function
 #' @param abundance_data `abundance_data` slot of the output of the `get_abundance_info()` function
 #' @param celltype_oi Character vector with names of celltype of interest
-#' @param groups_oi Which groups to show? Default: NA -- will show all groups.
+#' @param groups_oi Which groups to show? Default: NULL -- will show all groups.
 #'
 #' @return Gene expression dotplot list: pseudobulk version and single-cell version
 #'
@@ -58,7 +58,7 @@ scaling_zscore = function (x)
 #'
 #' @export
 #'
-make_DEgene_dotplot_pseudobulk = function(genes_oi, celltype_info, abundance_data, celltype_oi, groups_oi = NA){
+make_DEgene_dotplot_pseudobulk = function(genes_oi, celltype_info, abundance_data, celltype_oi, groups_oi = NULL){
 
   requireNamespace("dplyr")
   requireNamespace("ggplot2")
@@ -69,17 +69,17 @@ make_DEgene_dotplot_pseudobulk = function(genes_oi, celltype_info, abundance_dat
   names(keep_sender_receiver_values) = c(FALSE, TRUE)
 
   abundance_data = abundance_data %>% dplyr::rename(sample = sample_id, celltype = celltype_id, group = group_id) %>% select(-n)
+
   plot_data = celltype_info$pb_df %>% inner_join(abundance_data, by = c("sample", "celltype"))
   plot_data = plot_data %>% dplyr::group_by(gene,celltype) %>% dplyr::mutate(scaled_gene_exprs = scaling_zscore(pb_sample)) %>% dplyr::ungroup()
   plot_data$gene = factor(plot_data$gene, levels=genes_oi)
 
   plot_data = plot_data %>% dplyr::filter(gene %in% genes_oi & celltype %in% celltype_oi)
 
-  if(!is.na(groups_oi)){
+  if(!is.null(groups_oi)){
     plot_data = plot_data %>% dplyr::filter(group %in% groups_oi)
 
   }
-
   p1 = plot_data %>%
     ggplot(aes(sample, gene, color = scaled_gene_exprs, size = keep)) +
     geom_point() +
@@ -187,7 +187,7 @@ make_DEgene_dotplot_pseudobulk = function(genes_oi, celltype_info, abundance_dat
 #'
 #' @export
 #'
-make_DEgene_dotplot_pseudobulk_reversed = function(genes_oi, celltype_info, abundance_data, celltype_oi, groups_oi = NA){
+make_DEgene_dotplot_pseudobulk_reversed = function(genes_oi, celltype_info, abundance_data, celltype_oi, groups_oi = NULL){
 
   requireNamespace("dplyr")
   requireNamespace("ggplot2")
@@ -204,7 +204,7 @@ make_DEgene_dotplot_pseudobulk_reversed = function(genes_oi, celltype_info, abun
 
   plot_data = plot_data %>% dplyr::filter(gene %in% genes_oi & celltype %in% celltype_oi)
 
-  if(!is.na(groups_oi)){
+  if(!is.null(groups_oi)){
     plot_data = plot_data %>% dplyr::filter(group %in% groups_oi)
 
   }
@@ -322,13 +322,13 @@ make_DEgene_dotplot_pseudobulk_reversed = function(genes_oi, celltype_info, abun
 #' }
 #' @export
 #'
-make_DEgene_violin_plot = function(sce, gene_oi, celltype_oi, group_id, sample_id, celltype_id, covariate_oi = NA, groups_oi = NA){
+make_DEgene_violin_plot = function(sce, gene_oi, celltype_oi, group_id, sample_id, celltype_id, covariate_oi = NA, groups_oi = NULL){
   requireNamespace("dplyr")
   requireNamespace("ggplot2")
 
   sce_subset =  sce[, SummarizedExperiment::colData(sce)[,celltype_id] %in% celltype_oi]
 
-  if(!is.na(groups_oi)){
+  if(!is.null(groups_oi)){
     sce_subset =  sce[, SummarizedExperiment::colData(sce)[,group_id] %in% groups_oi]
 
   }
@@ -432,7 +432,7 @@ make_DEgene_violin_plot = function(sce, gene_oi, celltype_oi, group_id, sample_i
 #'
 #' @export
 #'
-make_DEgene_dotplot_pseudobulk_covariate = function(genes_oi, celltype_info, abundance_data, celltype_oi, covariate_oi, groups_oi = NA){
+make_DEgene_dotplot_pseudobulk_covariate = function(genes_oi, celltype_info, abundance_data, celltype_oi, covariate_oi, groups_oi = NULL){
 
   requireNamespace("dplyr")
   requireNamespace("ggplot2")
@@ -449,7 +449,7 @@ make_DEgene_dotplot_pseudobulk_covariate = function(genes_oi, celltype_info, abu
 
   plot_data = plot_data %>% dplyr::filter(gene %in% genes_oi & celltype %in% celltype_oi)
 
-  if(!is.na(groups_oi)){
+  if(!is.null(groups_oi)){
     plot_data = plot_data %>% dplyr::filter(group %in% groups_oi)
 
   }

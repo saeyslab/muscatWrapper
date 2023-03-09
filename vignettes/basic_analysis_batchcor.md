@@ -21,7 +21,7 @@ DE analysis while **correcting for covariates/batch effects**.
 
 As example expression data, we will use data from Puram et al. of the
 tumor microenvironment in head and neck squamous cell carcinoma (HNSCC)
-\[See @puram\_single-cell\_2017\]
+\[See @puram_single-cell_2017\]
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5196144.svg)](https://doi.org/10.5281/zenodo.5196144).
 The groups we have here are tumors scoring high for a partial
 epithelial-mesenschymal transition (p-EMT) program vs low-scoring
@@ -29,17 +29,17 @@ tumors.
 
 The different steps of the MultiNicheNet analysis are the following:
 
--   0.  Preparation of the analysis: load packages, read in the
-        single-cell expression data, and define the main settings of the
-        muscat analysis
+- 0.  Preparation of the analysis: load packages, read in the
+      single-cell expression data, and define the main settings of the
+      muscat analysis
 
--   1.  Check cell type abundance for the cell types of interest
+- 1.  Check cell type abundance for the cell types of interest
 
--   2.  Perform genome-wide differential expression (DS) analysis
+- 2.  Perform genome-wide differential expression (DS) analysis
 
--   3.  Downstream analysis of the DS output, including visualization
+- 3.  Downstream analysis of the DS output, including visualization
 
--   4.  Exploring the effect of the batch effect correction
+- 4.  Exploring the effect of the batch effect correction
 
 In this vignette, we will demonstrate all these steps in detail.
 
@@ -60,9 +60,9 @@ library(muscatWrapper)
 
 In this case study, we want to study differences in expression between
 pEMT-high and pEMT-low tumors. The meta data columns that indicate the
-pEMT status of tumors are ‘pEMT’ and ‘pEMT\_fine’, cell type is
-indicated in the ‘celltype’ column, and the sample is indicated by the
-‘tumor’ column.
+pEMT status of tumors are ‘pEMT’ and ‘pEMT_fine’, cell type is indicated
+in the ‘celltype’ column, and the sample is indicated by the ‘tumor’
+column.
 
 ``` r
 sce = readRDS(url("https://zenodo.org/record/5196144/files/sce_hnscc.rds"))
@@ -116,8 +116,8 @@ scater::plotReducedDim(sce, dimred = "UMAP", colour_by = "batch")
 Now we will define in which metadata columns we can find the **group**,
 **sample**, **cell type** and **covariates** IDs
 
-For the group\_id in this vignette, we choose the ‘pEMT’ column instead
-of ‘pEMT\_fine’.
+For the group_id in this vignette, we choose the ‘pEMT’ column instead
+of ‘pEMT_fine’.
 
 ``` r
 sample_id = "tumor"
@@ -238,9 +238,9 @@ indicated by the red dashed line)
 
 If too many celltype-sample combinations don’t pass this threshold, we
 recommend to define your cell types in a more general way it this would
-still be possible and make sense biologically (–&gt; use one level
-higher of the cell type ontology hierarchy; eg TH17 CD4T cells –&gt;
-CD4T cells \| but not myeloid + T.cell together).
+still be possible and make sense biologically (–\> use one level higher
+of the cell type ontology hierarchy; eg TH17 CD4T cells –\> CD4T cells
+\| but not myeloid + T.cell together).
 
 We can see here that quite many sample-celltype combinations are left
 out. For Endothelial, Myeloid, and T cells, we don’t even have two or
@@ -485,8 +485,11 @@ group_oi = "High"
 
 DE_genes = muscat_output$celltype_de$celltype_de$de_output_tidy  %>% inner_join(contrast_tbl) %>% filter(group == group_oi) %>% filter(cluster_id == celltype_oi) %>% filter(p_adj <= 0.05 & logFC >= 1) %>% arrange(p_adj) %>% pull(gene) %>% unique()
 DE_genes
-##  [1] "CIB1"    "RAB31"   "AGTRAP"  "GSDMC"   "AHNAK2"  "ITGA3"   "ANXA8L1" "ITGB6"   "S100A2"  "GPR68"   "ITGB1"   "KRT16"   "GALNT6"  "INHBA"   "ACTN1"   "PDLIM7"  "CA2"     "KCNK6"   "PLEK2"   "GBP3"    "ANXA8L2" "PDGFC"   "SAMD9L" 
-## [24] "MT1L"    "SLC31A2" "IL20RB"  "SERINC2" "ATP6V1D" "CSPG4"   "RAB38"   "GJB6"    "THSD1"   "EREG"    "EHD2"    "COL17A1" "CAV1"    "IL20"    "MMP1"    "LTBP1"   "GALE"    "GNAI1"
+##  [1] "CIB1"    "RAB31"   "AGTRAP"  "GSDMC"   "AHNAK2"  "ITGA3"   "ANXA8L1" "ITGB6"   "S100A2" 
+## [10] "GPR68"   "ITGB1"   "KRT16"   "GALNT6"  "INHBA"   "ACTN1"   "PDLIM7"  "CA2"     "KCNK6"  
+## [19] "PLEK2"   "GBP3"    "ANXA8L2" "PDGFC"   "SAMD9L"  "MT1L"    "SLC31A2" "IL20RB"  "SERINC2"
+## [28] "ATP6V1D" "CSPG4"   "RAB38"   "GJB6"    "THSD1"   "EREG"    "EHD2"    "COL17A1" "CAV1"   
+## [37] "IL20"    "MMP1"    "LTBP1"   "GALE"    "GNAI1"
 ```
 
 (Note 1 : Due to the pseudoubulking, single-cell level information is
@@ -494,7 +497,7 @@ lost and Muscat can be underpowered. Therefore it is possible that are
 sometimes no significant DE genes after multiple testing correction. In
 that case, using less stringent cutoffs is better)
 
-(Note 2 : If having a few samples per group (&lt;5), it is likely that
+(Note 2 : If having a few samples per group (\<5), it is likely that
 some DE genes will be driven by an outlier sample. Therefore it is
 always necessary to visualize the expression of the DE genes in the
 violin and dotplots shown here)
@@ -619,19 +622,19 @@ muscat_output_joined = muscat_output_uncorrected$celltype_de$celltype_de$de_outp
 
 muscat_output_joined %>% arrange(-abs(diff_logFC)) %>% filter(cluster_id == celltype_oi)
 ## # A tibble: 27,894 x 8
-##    gene    cluster_id logFC_uncorrected p_adj_uncorrected contrast logFC_corrected p_adj_corrected diff_logFC
-##    <chr>   <chr>                  <dbl>             <dbl> <chr>              <dbl>           <dbl>      <dbl>
-##  1 MCIN    Malignant             -0.944             0.914 High-Low           -3.66           0.437      -2.72
-##  2 MCIN    Malignant              0.944             0.914 Low-High            3.66           0.437       2.72
-##  3 CST1    Malignant             -2.08              0.794 High-Low           -4.63           0.516      -2.55
-##  4 CST1    Malignant              2.08              0.794 Low-High            4.63           0.516       2.55
-##  5 GAGE12D Malignant             -0.172             0.994 High-Low           -2.58           0.789      -2.41
-##  6 GAGE12D Malignant              0.172             0.994 Low-High            2.58           0.789       2.41
-##  7 DPT     Malignant              1.14              0.906 High-Low           -1.05           0.879      -2.19
-##  8 DPT     Malignant             -1.14              0.906 Low-High            1.05           0.879       2.19
-##  9 HSPA7   Malignant              3.72              0.479 High-Low            1.55           0.742      -2.17
-## 10 HSPA7   Malignant             -3.72              0.479 Low-High           -1.55           0.742       2.17
-## # ... with 27,884 more rows
+##    gene    cluster_id logFC_uncorrected p_adj_uncorrected contrast logFC_corrected p_adj_co~1 diff_~2
+##    <chr>   <chr>                  <dbl>             <dbl> <chr>              <dbl>      <dbl>   <dbl>
+##  1 MCIN    Malignant             -0.944             0.914 High-Low           -3.66      0.437   -2.72
+##  2 MCIN    Malignant              0.944             0.914 Low-High            3.66      0.437    2.72
+##  3 CST1    Malignant             -2.08              0.794 High-Low           -4.63      0.516   -2.55
+##  4 CST1    Malignant              2.08              0.794 Low-High            4.63      0.516    2.55
+##  5 GAGE12D Malignant             -0.172             0.994 High-Low           -2.58      0.789   -2.41
+##  6 GAGE12D Malignant              0.172             0.994 Low-High            2.58      0.789    2.41
+##  7 DPT     Malignant              1.14              0.906 High-Low           -1.05      0.879   -2.19
+##  8 DPT     Malignant             -1.14              0.906 Low-High            1.05      0.879    2.19
+##  9 HSPA7   Malignant              3.72              0.479 High-Low            1.55      0.742   -2.17
+## 10 HSPA7   Malignant             -3.72              0.479 Low-High           -1.55      0.742    2.17
+## # ... with 27,884 more rows, and abbreviated variable names 1: p_adj_corrected, 2: diff_logFC
 ```
 
 Check now also the DE analysis results and difference for the top A/B
@@ -640,30 +643,32 @@ genes
 ``` r
 muscat_output_joined %>% arrange(-abs(diff_logFC)) %>% filter(cluster_id == celltype_oi) %>% filter(gene %in% top_A_genes)
 ## # A tibble: 10 x 8
-##    gene     cluster_id logFC_uncorrected p_adj_uncorrected contrast logFC_corrected p_adj_corrected diff_logFC
-##    <chr>    <chr>                  <dbl>             <dbl> <chr>              <dbl>           <dbl>      <dbl>
-##  1 MCIN     Malignant             -0.944             0.914 High-Low           -3.66          0.437      -2.72 
-##  2 MCIN     Malignant              0.944             0.914 Low-High            3.66          0.437       2.72 
-##  3 SUSD3    Malignant             -1.04              0.899 High-Low           -3.02          0.435      -1.98 
-##  4 SUSD3    Malignant              1.04              0.899 Low-High            3.02          0.435       1.98 
-##  5 NLRP2    Malignant             -0.131             0.994 High-Low           -1.02          0.846      -0.889
-##  6 NLRP2    Malignant              0.131             0.994 Low-High            1.02          0.846       0.889
-##  7 P2RY6    Malignant              1.18              0.877 High-Low            1.62          0.514       0.44 
-##  8 P2RY6    Malignant             -1.18              0.877 Low-High           -1.62          0.514      -0.44 
-##  9 PNLIPRP3 Malignant              8.28              0.223 High-Low            8.66          0.0792      0.380
-## 10 PNLIPRP3 Malignant             -8.28              0.223 Low-High           -8.66          0.0792     -0.380
+##    gene     cluster_id logFC_uncorrected p_adj_uncorrected contrast logFC_corrected p_adj_c~1 diff_~2
+##    <chr>    <chr>                  <dbl>             <dbl> <chr>              <dbl>     <dbl>   <dbl>
+##  1 MCIN     Malignant             -0.944             0.914 High-Low           -3.66    0.437   -2.72 
+##  2 MCIN     Malignant              0.944             0.914 Low-High            3.66    0.437    2.72 
+##  3 SUSD3    Malignant             -1.04              0.899 High-Low           -3.02    0.435   -1.98 
+##  4 SUSD3    Malignant              1.04              0.899 Low-High            3.02    0.435    1.98 
+##  5 NLRP2    Malignant             -0.131             0.994 High-Low           -1.02    0.846   -0.889
+##  6 NLRP2    Malignant              0.131             0.994 Low-High            1.02    0.846    0.889
+##  7 P2RY6    Malignant              1.18              0.877 High-Low            1.62    0.514    0.44 
+##  8 P2RY6    Malignant             -1.18              0.877 Low-High           -1.62    0.514   -0.44 
+##  9 PNLIPRP3 Malignant              8.28              0.223 High-Low            8.66    0.0792   0.380
+## 10 PNLIPRP3 Malignant             -8.28              0.223 Low-High           -8.66    0.0792  -0.380
+## # ... with abbreviated variable names 1: p_adj_corrected, 2: diff_logFC
 muscat_output_joined %>% arrange(-abs(diff_logFC)) %>% filter(cluster_id == celltype_oi) %>% filter(gene %in% top_B_genes)
 ## # A tibble: 8 x 8
-##   gene    cluster_id logFC_uncorrected p_adj_uncorrected contrast logFC_corrected p_adj_corrected diff_logFC
-##   <chr>   <chr>                  <dbl>             <dbl> <chr>              <dbl>           <dbl>      <dbl>
-## 1 CXCL5   Malignant              1.59              0.904 High-Low           1.36            0.842   -0.23   
-## 2 CXCL5   Malignant             -1.59              0.904 Low-High          -1.36            0.842    0.23   
-## 3 RANBP17 Malignant             -0.606             0.964 High-Low          -0.412           0.96     0.194  
-## 4 RANBP17 Malignant              0.606             0.964 Low-High           0.412           0.96    -0.194  
-## 5 PSG4    Malignant              2.51              0.793 High-Low           2.45            0.602   -0.0600 
-## 6 PSG4    Malignant             -2.51              0.793 Low-High          -2.45            0.602    0.0600 
-## 7 SPRR3   Malignant             -0.431             0.977 High-Low          -0.428           0.962    0.00300
-## 8 SPRR3   Malignant              0.431             0.977 Low-High           0.428           0.962   -0.00300
+##   gene    cluster_id logFC_uncorrected p_adj_uncorrected contrast logFC_corrected p_adj_co~1 diff_l~2
+##   <chr>   <chr>                  <dbl>             <dbl> <chr>              <dbl>      <dbl>    <dbl>
+## 1 CXCL5   Malignant              1.59              0.904 High-Low           1.36       0.842 -0.23   
+## 2 CXCL5   Malignant             -1.59              0.904 Low-High          -1.36       0.842  0.23   
+## 3 RANBP17 Malignant             -0.606             0.964 High-Low          -0.412      0.96   0.194  
+## 4 RANBP17 Malignant              0.606             0.964 Low-High           0.412      0.96  -0.194  
+## 5 PSG4    Malignant              2.51              0.793 High-Low           2.45       0.602 -0.0600 
+## 6 PSG4    Malignant             -2.51              0.793 Low-High          -2.45       0.602  0.0600 
+## 7 SPRR3   Malignant             -0.431             0.977 High-Low          -0.428      0.962  0.00300
+## 8 SPRR3   Malignant              0.431             0.977 Low-High           0.428      0.962 -0.00300
+## # ... with abbreviated variable names 1: p_adj_corrected, 2: diff_logFC
 ```
 
 Check now also once the batch coefficients for the genes with strongest

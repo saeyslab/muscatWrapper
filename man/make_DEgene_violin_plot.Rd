@@ -21,7 +21,7 @@ make_DEgene_violin_plot(sce, gene_oi, celltype_oi, group_id, sample_id, celltype
 
 \item{covariate_oi}{Name of a covariate of interest based on which the visualization will be split. Default: NA: no covariate.}
 
-\item{groups_oi}{Which groups to show? Default: NA -- will show all groups.}
+\item{groups_oi}{Which groups to show? Default: NULL -- will show all groups.}
 }
 \value{
 ggplot object: Violin plot of a gene gene of interest: per sample, and samples are grouped per group
